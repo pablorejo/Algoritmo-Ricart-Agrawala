@@ -8,12 +8,13 @@
 #include <sys/msg.h> // Para usar la funcion
 
 #include <semaphore.h>
+
+#include <unistd.h>
 #define N 1000
 
-int mi_ticket = 0, id_nodos_pend[N-1] = {0}, num_pend = 0, quiero = 0, max_ticket = 0, n_procesos = N-1;
+int mi_ticket = 0, id_nodos_pend[N-1] = {0}, id_nodos[N-1] = {0}, num_pend = 0, quiero = 0, max_ticket = 0, n_procesos = N-1;
 int msg_tickets,msg_ack; //id del buzón
 
-int id_nodos[N-1] = {0};//Id de todos los nodos
 long mi_id;
 
 typedef struct 
@@ -68,8 +69,9 @@ int main(int argc, char const *argv[])
     pthread_create(&mi_id_thread, NULL, recivir, NULL);
     
     while (1){
-        printf("Pulsa enter para entrar en la sección crítica\n");
-        while (getchar()!='\n'){}
+        // printf("Pulsa enter para entrar en la sección crítica\n");
+        // while (getchar()!='\n'){}
+        sleep(5);
         printf("Intentando entrar a la sección crítica\n");
         // Semaforo de exclusión mutua aquí
         sem_wait(&mutex);
@@ -77,6 +79,7 @@ int main(int argc, char const *argv[])
         msg.ticket_origen = max_ticket + 1;
         sem_post(&mutex);
         // Termina el semaforo
+        printf("Mi ticket es %i\n",msg.ticket_origen);
 
         printf("Enviando mensajes para a todos los nodos\n");
         for (int i = 0; i < n_procesos; i++) {
@@ -101,16 +104,22 @@ int main(int argc, char const *argv[])
         } 
         ///SECCIÓN CRÍTICA;
         printf("Haciendo la sección crítica\n");
-
+        sleep(5);
+        printf("Fin de la sección crítica\n");
+        sleep(3);
+        // Fin sección crítica
 
 
         quiero = 0;
+
         for (int i = 0; i < num_pend; i++){
             // Enviamos los mensajes que nos quedasen pendientes de enviar
-            msg.mtype = id_nodos[i];
+            msg.mtype = id_nodos_pend[i];
             msg.id_origen = mi_id;
             msgsnd(msg_ack, &msg, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+            printf("Enviando el ack al nodo %li desde el nodo %li\n",msg.mtype,mi_id);
         }
+        
         num_pend = 0;
     }
 }
@@ -140,7 +149,8 @@ void* recivir(void *args) {
             printf("Enviamos un mensaje al nodo origen %li\n",msg.mtype);
         }
         else {
-            id_nodos_pend[num_pend++] = msg.mtype;
+            num_pend++;
+            id_nodos_pend[num_pend-1] = msg.id_origen;
         }
         sem_post(&mutex);
         // Termina el semaforo de exclusion mutua
