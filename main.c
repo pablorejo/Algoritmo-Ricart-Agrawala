@@ -123,7 +123,7 @@ void* recivir(void *args) {
     while (1) {
         
         msgrcv(msg_tickets, &msg, sizeof(mensaje), mi_id, 0);
-        printf("Recivimos un mensaje del nodo %li con tipo %i\n",msg.id_origen,msg.ticket_origen);
+        printf("Recivimos un mensaje del nodo %i con tipo %li yl el ticket es %i\n",msg.id_origen,msg.mtype,msg.ticket_origen);
 
         // Semaforo de exclusión mutua aquí
         sem_wait(&mutex);
