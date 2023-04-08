@@ -7,6 +7,7 @@
 #include <sys/ipc.h> // Para algunas banderas
 #include <sys/msg.h> // Para usar la funcion
 
+#include <semaphore.h>
 #define N 3 
 
 int mi_ticket = 0, mi_id, id_nodos_pend[N-1] = {0}, num_pend = 0, quiero = 0, max_ticket = 0;
@@ -25,6 +26,8 @@ typedef struct
 
 mensaje msg;
 
+sem_t mutex;
+
 int main(int argc, char const *argv[])
 {
     if (argc < 2){
@@ -40,6 +43,9 @@ int main(int argc, char const *argv[])
     msg.id_nodo_origen = mi_id;
     msg.ticket_origen = 0;
 
+    // iniciamos el semáforo
+    sem_init(&mutex,0,1);
+
 
     int pthread_create(pthread_t *thread, const pthread_attr_t *attr, void *(*start_routine) (void *), void *arg);
     while (1)
@@ -48,7 +54,9 @@ int main(int argc, char const *argv[])
         while (getchar()!='\n'){}
         
         // Semaforo de exclusión mutua aquí
+        sem_wait(&mutex);
         msg.ticket_origen = msg.ticket_origen + 1;
+        sem_post(&mutex);
         // Termina el semaforo
 
         for (int i = 0; i < N-1; i++) {
@@ -91,6 +99,7 @@ void* recivir(void *args) {
         // }
 
         // Semaforo de exclusión mutua aquí
+        sem_wait(&mutex);
         max_ticket = MAX(max_ticket, msg.ticket_origen);
 
         if (quiero = 0 || msg.ticket_origen < mi_ticket || (msg.ticket_origen == mi_ticket && (msg.id_nodo_origen < mi_id))){
@@ -102,6 +111,7 @@ void* recivir(void *args) {
         else {
             id_nodos_pend[num_pend++] = msg.id_nodo_origen;
         }
+        sem_post(&mutex);
         // Termina el semaforo de exclusion mutua
     }
 }
