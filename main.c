@@ -11,6 +11,7 @@
 
 #include <unistd.h>
 #define N 1000
+#define SLEEP 1
 
 int mi_ticket = 0, id_nodos_pend[N-1] = {0}, id_nodos[N-1] = {0}, num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1;
 int n_procesos, critica = 0;
@@ -95,7 +96,7 @@ void* enviar(void *args)
     while (1){
         // printf("Pulsa enter para entrar en la sección crítica\n");
         // while (getchar()!='\n'){}
-        sleep(5);
+        sleep(SLEEP);
         // printf"Intentando entrar a la sección crítica\n");
         // Semaforo de exclusión mutua aquí
         sem_wait(&sem_mutex_tickets);
@@ -132,9 +133,9 @@ void* enviar(void *args)
         ///SECCIÓN CRÍTICA;
         critica = 1;
         printf("El nodo: %li con proceso %lu está haciendo la sección crítica\n",mi_id,thread_procesos[id_proceso]);
-        sleep(5);
+        sleep(SLEEP);
         printf("El nodo: %li con proceso %lu finalizó la sección crítica\n",mi_id,thread_procesos[id_proceso]);
-        sleep(5);
+        sleep(SLEEP);
         critica = 0;
         // Fin sección crítica
 
