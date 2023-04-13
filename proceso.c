@@ -8,7 +8,7 @@ int main(int argc, char const *argv[])
     int keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
     pid = getpid();
 
-    #ifdef __PRINT
+    #ifdef __PRINT_PROCESO
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
 
@@ -17,7 +17,7 @@ int main(int argc, char const *argv[])
     msg_semaforo_id = msgget(key+keyNodo,0660 | IPC_CREAT); // Creamos el buzón
 
 
-    #ifdef __PRINT
+    #ifdef __PRINT_PROCESO
     printf("Key: %i y id del buzon %i\n",key+keyNodo,msg_semaforo_id);
     #endif 
 

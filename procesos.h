@@ -35,7 +35,8 @@ typedef struct
 
 
 
-#define __PRINT // Comentar en caso de que no se quiera imprimir mensajes
+#define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
+#define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 
 #endif

@@ -31,16 +31,16 @@ void* enviar(void *args);
 int main(int argc, char const *argv[])
 {
     if (argc < 3){
-        // printf("Introduce el id y cuantos procesos hay\n");
-        // exit(-1);
+        printf("Introduce el id y cuantos procesos hay\n");
+        exit(-1);
 
 
-        mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        n_nodos = 2; // Numero de procesos totales
-        // Guardando ids de los procesos
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
+        // mi_id = 1; // Guardamos el id que nos otorgara el usuario    
+        // n_nodos = 2; // Numero de procesos totales
+        // // Guardando ids de los procesos
+        // for (int i = 0; i < n_nodos; i++){
+        //     id_nodos[i] = i+1;
+        // }
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -51,7 +51,7 @@ int main(int argc, char const *argv[])
         }
     }
     
-    #ifdef __PRINT
+    #ifdef __PRINT_RECIBIR
     printf("Mi id es %li y el N de nodos es %i\n",mi_id,n_nodos);
     #endif // DEBUG
 
@@ -63,7 +63,7 @@ int main(int argc, char const *argv[])
     msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
 
 
-    #ifdef __PRINT
+    #ifdef __PRINT_RECIBIR
     printf("Key 1: %i e id del buzón %i\n",key,msg_tickets_id);
 
     printf("Key 2: %li e id del buzón %i\n",key+N+mi_id,msg_semaforo_id);
@@ -93,24 +93,29 @@ int main(int argc, char const *argv[])
 void* enviar(void *args) 
 {
 
-    #ifdef __PRINT
+    #ifdef __PRINT_RECIBIR
     printf("Funcion enviar ok\n");
     #endif 
 
     
     while (1){
-        #ifdef __PRINT
-            printf("Esperando semaforo\n");
+        #ifdef __PRINT_RECIBIR
+        printf("Esperando semaforo\n");
         #endif 
 
         msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INTENTAR, 0); // Esperamos hasta que el proceso quiera entrar en la sección crítica
 
-        // printf("Pulsa enter para entrar en la sección crítica\n");
+        
+
+        #ifdef __PRINT_RECIBIR
+        printf("Pulsa enter para entrar en la sección crítica\n");
         sleep(SLEEP);
+        #endif // DEBUG
 
 
-        #ifdef __PRINT
-            printf("Intentando entrar a la sección crítica\n");
+
+        #ifdef __PRINT_RECIBIR
+        printf("Intentando entrar a la sección crítica\n");
         #endif 
 
 
@@ -120,11 +125,14 @@ void* enviar(void *args)
         mi_ticket = max_ticket + 1;
         sem_post(&sem_mutex);
         // Termina el semaforo
-        // printf("Mi ticket es %i\n",msg_ticket.ticket_origen);
+
+        #ifdef __PRINT_RECIBIR
+        printf("Mi ticket es %i\n",msg_ticket.ticket_origen);
+        #endif // DEBUG
 
 
-        #ifdef __PRINT
-            printf("Enviando mensajes para a todos los nodos\n");
+        #ifdef __PRINT_RECIBIR
+        printf("Enviando mensajes para a todos los nodos\n");
         #endif 
 
 
@@ -135,7 +143,11 @@ void* enviar(void *args)
                 msg_ticket.id_origen = mi_id;
                 msg_ticket.ticket_origen = mi_ticket;
                 msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el ticket al nodo 
+
+
+                #ifdef __PRINT_RECIBIR
                 printf("Enviando el mensaje %i al nodo %li desde el nodo %li\n",msg_ticket.ticket_origen,msg_ticket.mtype,mi_id);
+                #endif // DEBUG
             }
         }
         // printf"Reciviendo mensajes para a todos los nodos\n");
@@ -150,7 +162,7 @@ void* enviar(void *args)
         msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_END, 0);  // Esperamos a que termine la sección crítica
         // Fin sección crítica
 
-        // if (n_nodos > 1){ sem_post(&sem_SC); } 
+        
         
 
 
@@ -162,7 +174,12 @@ void* enviar(void *args)
             msg_ticket.id_origen = mi_id;
             msg_ticket.ticket_origen = ACK;
             msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
-            // printf"Enviando el ack al nodo %li desde el nodo %li\n",msg_ticket.mtype,mi_id);
+
+
+
+            #ifdef __PRINT_RECIBIR
+            printf("Enviando el ack al nodo %li desde el nodo %li\n",msg_ticket.mtype,mi_id);
+            #endif // DEBUG
         }
         
         num_pend = 0;
@@ -175,7 +192,7 @@ void recibir() {
     mensaje msg_recibir;
     int ack_recividos = n_nodos;
 
-    #ifdef __PRINT
+    #ifdef __PRINT_RECIBIR
     printf("Ejecutando hilo\n");
     #endif 
 
@@ -184,7 +201,7 @@ void recibir() {
         
         msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
 
-        #ifdef __PRINT
+        #ifdef __PRINT_RECIBIR
         printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen);
         #endif 
         
@@ -214,7 +231,12 @@ void recibir() {
             msg_recibir.id_origen = (int) mi_id;
             msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
             msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
-            // printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
+
+
+            #ifdef __PRINT_RECIBIR
+            printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
+            
+            #endif // DEBUG
 
 
 
@@ -222,7 +244,7 @@ void recibir() {
         {
             ack_recividos--; 
 
-            #ifdef __PRINT
+            #ifdef __PRINT_RECIBIR
             printf("Ack recividos %i\n",ack_recividos);
             #endif // DEBUG
 
