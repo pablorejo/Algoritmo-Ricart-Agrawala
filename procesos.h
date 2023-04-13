@@ -1,11 +1,11 @@
 #ifndef __PROCESOS_H
 #define __PROCESOS_H
 
-#include <semaphore.h>
-#include <sys/shm.h> // memoria compartida
-#include <sys/stat.h> // memoria compartida
-#include <string.h> // Cadenas de texto
 
+#include <stdio.h> // para los printf
+#include <unistd.h> // para el sleep
+#include <sys/msg.h> // Para usar la funcion maso de mensajes
+#include <stdlib.h> // Para el atoi
 
 
 
@@ -15,12 +15,19 @@
 #define SEM_SYNC_INTENTAR 4
 #define ACK 0
 
+#define ID_NODO_CONTROLADOR 1
+
 typedef struct
 {
     long mtype; 
 }semaforo;
 
-
+typedef struct 
+{
+    long mtype ; // Donde guardaremos el nodo origen
+    int id_origen;
+    int ticket_origen;
+}mensaje;
 
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
@@ -28,7 +35,7 @@ typedef struct
 
 
 
-// #define __PRINT // Comentar en caso de que no se quiera imprimir mensajes
+#define __PRINT // Comentar en caso de que no se quiera imprimir mensajes
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 
 #endif

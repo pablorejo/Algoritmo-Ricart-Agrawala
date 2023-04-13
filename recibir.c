@@ -1,15 +1,5 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-
-#include <sys/types.h> // Se definen algunos tipos de datos
-#include <sys/ipc.h> // Para algunas banderas
-#include <sys/msg.h> // Para usar la funcion
-
-
-#include <unistd.h>
-
-
+#include <pthread.h> // Para hilos
+#include <semaphore.h> // Para semáforos
 #include "procesos.h" // Incluimos la cabecera de los procesos
 
 
@@ -22,12 +12,7 @@ int msg_tickets_id,msg_semaforo_id; //id del buzón
 
 long mi_id;
 
-typedef struct 
-{
-    long mtype ; // Donde guardaremos el nodo origen
-    int id_origen;
-    int ticket_origen;
-}mensaje;
+
 mensaje msg_ticket;
 
 
@@ -59,7 +44,11 @@ int main(int argc, char const *argv[])
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
-
+        if (mi_id == ID_NODO_CONTROLADOR)
+        {
+            printf("El ID no puede ser igual al id del nodo controlador\n");
+        }
+        
         for (int i = 0; i < n_nodos; i++){
             id_nodos[i] = i+1;
         }
@@ -72,9 +61,6 @@ int main(int argc, char const *argv[])
 
 
     key_t key = ftok("recibir.c",1);
-
-
-
 
     msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
     msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
@@ -191,7 +177,12 @@ void* enviar(void *args)
 void recibir() {
     mensaje msg_recibir;
     int ack_recividos = n_nodos;
+
+    #ifdef __PRINT
     printf("Ejecutando hilo\n");
+    #endif 
+
+
     while (1) {
         
         msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos

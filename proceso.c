@@ -1,19 +1,3 @@
-#include <string.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <pthread.h>
-
-#include <sys/types.h> // Se definen algunos tipos de datos
-#include <sys/ipc.h> // Para algunas banderas
-#include <sys/msg.h> // Para usar la funcion
-
-#include <semaphore.h>
-
-#include <unistd.h>
-
-
-
-
 #include "procesos.h" // Incluimos la cabecera de los procesos
 
 int pid;
@@ -67,7 +51,7 @@ int main(int argc, char const *argv[])
         // while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
         printf("El proceso %i abandonó la sección crítica\n",pid);
         // TERMINA LA SECCIÓN CRÍTICA
-        
+
         #endif // DEBUG
 
 
