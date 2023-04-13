@@ -44,10 +44,12 @@ int main(int argc, char const *argv[])
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
-        if (mi_id == ID_NODO_CONTROLADOR)
-        {
-            printf("El ID no puede ser igual al id del nodo controlador\n");
-        }
+        
+        
+        // if (mi_id == ID_NODO_CONTROLADOR)
+        // {
+        //     printf("El ID no puede ser igual al id del nodo controlador\n");
+        // }
         
         for (int i = 0; i < n_nodos; i++){
             id_nodos[i] = i+1;
