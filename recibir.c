@@ -5,13 +5,13 @@
 
 
 
-int mi_ticket = 0, id_nodos_pend[N-1] = {0}, id_nodos[N-1] = {0}, 
-    num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1;
+int mi_ticket = 0, id_nodos_pend[N-1] = {0},
+    num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1, ultimo_nodo = 0;
 
 int msg_tickets_id,msg_semaforo_id; //id del buzón
 
 long mi_id;
-
+int id_nodos[];
 
 mensaje msg_ticket;
 
@@ -38,9 +38,7 @@ int main(int argc, char const *argv[])
         mi_id = 1; // Guardamos el id que nos otorgara el usuario    
         n_nodos = 2; // Numero de procesos totales
         // Guardando ids de los procesos
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
+       
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -51,9 +49,6 @@ int main(int argc, char const *argv[])
         //     printf("El ID no puede ser igual al id del nodo controlador\n");
         // }
         
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
     }
     
     #ifdef __PRINT
@@ -86,6 +81,22 @@ int main(int argc, char const *argv[])
 
     msg_semaforo.mtype = SEM_MUTEX;
     msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); //Enviamos un mensaje a todos los proceso de tipo 1 para que puedan entrar en la seccion crítica
+
+
+
+    // Tenemos que dar de alta el nodo para eso hacemos lo siguiente
+    msg_ticket.mtype = ID_NODO_CONTROLADOR;
+    msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); // Enviamos un mensaje al controlador de que queremos que nos dea de alta
+
+    // Tenemos que recivir un mensaje de que nos dio de alta 
+    msgrcv(msg_tickets_id, &msg_ticket, sizeof(mensaje), mi_id, 0); 
+
+
+    if (msg_ticket.opcion == DADO_DE_ALTA){
+        *id_nodos = msg_ticket.id_nodos;
+    }
+    
+
 
 
 
@@ -197,53 +208,78 @@ void recibir() {
         // Semaforo de exclusión mutua aquí
         sem_wait(&sem_mutex);
         // asignamos el valor maximo a ticket maximo
-        if (msg_recibir.ticket_origen > max_ticket){ max_ticket = msg_recibir.ticket_origen; }
 
-
-        if  (
-            (
-                quiero == 0 
-                || msg_recibir.ticket_origen < mi_ticket 
-                || (
-                    msg_recibir.ticket_origen == mi_ticket 
-                    && msg_recibir.id_origen < mi_id
-                    )
-            ) 
-            && 
-                (msg_recibir.ticket_origen != ACK))
-            {
-            // En caso de que no queramos enviar un ticket quiero = 0
-            // En caso de que el ticket recivido sea menor que nuestro ticket
-            // Si nuestro ticket es igual al recivido pero nuestro id es mayor que el del origen
-            msg_recibir.mtype = (long) msg_recibir.id_origen;
-            msg_recibir.id_origen = (int) mi_id;
-            msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
-            msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
-            // printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
-
-
-
-        }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
+        if (msg_recibir.id_origen == ID_NODO_CONTROLADOR)
         {
-            ack_recividos--; 
-
-            #ifdef __PRINT
-            printf("Ack recividos %i\n",ack_recividos);
-            #endif // DEBUG
-
-
-            if (ack_recividos == 1) // Comprobamos que tenemos todos los ack
+            
+            if (msg_recibir.opcion ==  DAR_ALTA_NODO)
             {
-                sem_post(&sem_SC);  // Indicamos al hilo enviar que puede continuar
-                ack_recividos = n_nodos; // Volvemos a actualizar el contador de ack
+                ultimo_nodo ++;
+                id_nodos[ultimo_nodo] = msg_recibir.ticket_origen;
+            }// Fin dar de alta nodo
+            
+            
+            else if (msg_recibir.opcion ==  DAR_BAJA_NODO){
+                for (int i = 0; i < ultimo_nodo; i++) // Recorremos todos los nodos hasta encontrar el nuestro y así darlo de baja
+                {
+                    if (msg_recibir.ticket_origen == id_nodos[i])
+                    {
+                        id_nodos[i] = 0;
+                    }
+                }
+            }// Fin dar de baja nodo
+            
+
+        }else{
+
+            if (msg_recibir.ticket_origen > max_ticket){ max_ticket = msg_recibir.ticket_origen; }
+
+
+            if  (
+                (
+                    quiero == 0 
+                    || msg_recibir.ticket_origen < mi_ticket 
+                    || (
+                        msg_recibir.ticket_origen == mi_ticket 
+                        && msg_recibir.id_origen < mi_id
+                        )
+                ) 
+                && 
+                    (msg_recibir.ticket_origen != ACK))
+                {
+                // En caso de que no queramos enviar un ticket quiero = 0
+                // En caso de que el ticket recivido sea menor que nuestro ticket
+                // Si nuestro ticket es igual al recivido pero nuestro id es mayor que el del origen
+                msg_recibir.mtype = (long) msg_recibir.id_origen;
+                msg_recibir.id_origen = (int) mi_id;
+                msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
+                msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
+                // printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
+
+
+
+            }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
+            {
+                ack_recividos--; 
+
+                #ifdef __PRINT
+                printf("Ack recividos %i\n",ack_recividos);
+                #endif // DEBUG
+
+
+                if (ack_recividos == 1) // Comprobamos que tenemos todos los ack
+                {
+                    sem_post(&sem_SC);  // Indicamos al hilo enviar que puede continuar
+                    ack_recividos = n_nodos; // Volvemos a actualizar el contador de ack
+                }
             }
+            else {
+                num_pend++;
+                id_nodos_pend[num_pend-1] = msg_recibir.id_origen;
+            }
+            sem_post(&sem_mutex);
+            // Termina el semaforo de exclusion mutua
         }
-        else {
-            num_pend++;
-            id_nodos_pend[num_pend-1] = msg_recibir.id_origen;
-        }
-        sem_post(&sem_mutex);
-        // Termina el semaforo de exclusion mutua
     }
 }
 
