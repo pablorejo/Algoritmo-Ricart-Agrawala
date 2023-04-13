@@ -72,7 +72,7 @@ int main(int argc, char const *argv[])
 
     msg_ticket.mtype = mi_id;
     msg_ticket.ticket_origen = mi_ticket;
-
+    int i = 0;
     // iniciamos los semáforos
     sem_init(&sem_mutex,0,1); // Semaforo de exclusión mutua para las variables
     sem_init(&sem_SC,0,0); // Semaforo de paso para el nodo
