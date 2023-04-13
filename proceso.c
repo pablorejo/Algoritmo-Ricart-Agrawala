@@ -17,47 +17,55 @@
 #include "procesos.h" // Incluimos la cabecera de los procesos
 
 int pid;
-semaforo *semaforos;
-
+semaforo msg_semaforo;
 
 int main(int argc, char const *argv[])
 {
+    int keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
     pid = getpid();
     printf("Soy el proceso con pid %i\n",pid);
 
-
-    key_t key = ftok("recibir.c",213);
-    semaforos_id = shmget(key, sizeof(semaforo), IPC_CREAT | 0666);
-    semaforos = (semaforo *)shmat(semaforos_id, NULL, 0);
+    int msg_semaforo_id;
+    key_t key = ftok("recibir.c",1);
+    msg_semaforo_id = msgget(key+keyNodo,0660 | IPC_CREAT); // Creamos el buzón
+    printf("Key: %i y id del buzon %i\n",key+keyNodo,msg_semaforo_id);
     
 
 
     while (1)
     {
-        while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
-        printf("El proceso %i está intentando entrar en la SC\n",pid);
+        // while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
+        sleep(SLEEP);
+        // printf("El proceso %i está intentando entrar en la SC\n",pid);
 
-        sem_wait(&semaforos->sem_mutext); // Impidimos que otros procesos (mesmo nodo) puedan entrar en la seccion crítica
-        printf("Intentando entrar\n");
-        int v_sem_mutex;
-        sem_getvalue(&semaforos->sem_sync_intentar,&v_sem_mutex);
-        printf("%i\n",v_sem_mutex);
-        sem_post(&semaforos->sem_sync_intentar); // Intentamos entrar en la seccion critica
-        sem_getvalue(&semaforos->sem_sync_intentar,&v_sem_mutex);
-        printf("%i\n",v_sem_mutex);
-        sem_wait(&semaforos->sem_sync_init); // Recivimos sincronizacion para entrar en la seccion critcia
+
         
+        msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_MUTEX, 0); //Para entrar en exclusion mutua con otros procesos del mismo nodo
+        // printf("Intentando entran en la sección crítica\n");
+
+        msg_semaforo.mtype = SEM_SYNC_INTENTAR;
+        msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Intentamos entrar en la seccion critica avisamos al recividor
+       
+
+        msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INIT, 0); // Recivimos sincronizacion para entrar en la seccion critcia
+        
+        sleep(SLEEP);
         // SECION CRÍTICA
         printf("El proceso %i está en la sección crítica\n",pid);
-        while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
-        printf("Realizando la seccion críticia\n");
+        // while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
         sleep(SLEEP);
-        while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
+        // printf("Realizando la seccion críticia\n");
+        sleep(SLEEP);
+        // while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
         printf("El proceso %i abandonó la sección crítica\n",pid);
         // TERMINA LA SECCIÓN CRÍTICA
 
-        sem_post(&semaforos->sem_sync_end); // Enviamos sincronizacion de que terminamos la seccion crítica
-        sem_post(&semaforos->sem_mutext); // Permitimos a otros procesos del nodo entrar en la seción crítica
+
+        msg_semaforo.mtype = SEM_SYNC_END;
+        msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0);// Enviamos sincronizacion de que terminamos la seccion crítica
+        
+        msg_semaforo.mtype = SEM_MUTEX;
+        msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Permitimos a otros entrar en la seccion crítica
         /* code */
     }
     

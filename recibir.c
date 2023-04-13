@@ -18,7 +18,7 @@
 int mi_ticket = 0, id_nodos_pend[N-1] = {0}, id_nodos[N-1] = {0}, 
     num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1;
 
-int msg_tickets_id,msg_ack_id; //id del buzón
+int msg_tickets_id,msg_semaforo_id; //id del buzón
 
 long mi_id;
 
@@ -29,15 +29,19 @@ typedef struct
     int ticket_origen;
 }mensaje;
 mensaje msg_ticket;
-mensaje msg_ack;
+
+
+
+semaforo msg_semaforo;
+
 
 sem_t sem_mutex;
+sem_t sem_SC;
 pthread_t thread_enviar;
 
 
 void recibir();
 void* enviar(void *args);
-semaforo *semaforos;
 
 int main(int argc, char const *argv[])
 {
@@ -47,7 +51,7 @@ int main(int argc, char const *argv[])
 
 
         mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        n_nodos = 3; // Numero de procesos totales
+        n_nodos = 2; // Numero de procesos totales
         // Guardando ids de los procesos
         for (int i = 0; i < n_nodos; i++){
             id_nodos[i] = i+1;
@@ -60,32 +64,33 @@ int main(int argc, char const *argv[])
             id_nodos[i] = i+1;
         }
     }
-    printf("Mi id es %li y el N de nodos es %i\n",mi_id,n_nodos);
-    key_t key = ftok("recibir.c",213);
-    msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
-    msg_ack_id = msgget(key+1,0660 | IPC_CREAT); // Creamos el buzón
-
     
-    // semaforos_id = shmget(key, sizeof(semaforo), IPC_CREAT | S_IRUSR | S_IWUSR);
-    // shmctl(semaforos_id, IPC_RMID, NULL);
-    semaforos_id = shmget(key, sizeof(semaforo), IPC_CREAT | 0666 );
-    semaforos = (semaforo *)shmat(semaforos_id, NULL, 0);
+    printf("Mi id es %li y el N de nodos es %i\n",mi_id,n_nodos);
+    key_t key = ftok("recibir.c",1);
+
+
+
+
+    msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
+    msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
+
+    printf("Key 1: %i e id del buzón %i\n",key,msg_tickets_id);
+
+    printf("Key 2: %li e id del buzón %i\n",key+N+mi_id,msg_semaforo_id);
+    
+ 
 
     msg_ticket.mtype = mi_id;
     msg_ticket.ticket_origen = mi_ticket;
 
     // iniciamos los semáforos
     sem_init(&sem_mutex,0,1); // Semaforo de exclusión mutua para las variables
+    sem_init(&sem_SC,0,0); // Semaforo de paso para el nodo
 
 
 
-    sem_init(&semaforos->sem_mutext,0,1);
-    int v_sem_mutex;
-    sem_getvalue(&semaforos->sem_mutext,&v_sem_mutex);
-    // printf("%i\n",v_sem_mutex);
-    sem_init(&semaforos->sem_sync_init,0,0);
-    sem_init(&semaforos->sem_sync_end,0,0);
-    sem_init((&semaforos->sem_sync_intentar),0,0);
+    msg_semaforo.mtype = SEM_MUTEX;
+    msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); //Enviamos un mensaje a todos los proceso de tipo 1 para que puedan entrar en la seccion crítica
 
 
 
@@ -100,13 +105,15 @@ void* enviar(void *args)
     printf("Funcion enviar ok\n");
     while (1){
         printf("Esperando semaforo\n");
-        int v_sem_mutex;
-        sem_getvalue(&semaforos->sem_sync_intentar,&v_sem_mutex);
-        printf("%i\n",v_sem_mutex);
-        sem_wait(&semaforos->sem_sync_intentar);
-        printf("Pulsa enter para entrar en la sección crítica\n");
+
+        msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INTENTAR, 0); // Esperamos hasta que el proceso quiera entrar en la sección crítica
+
+        // printf("Pulsa enter para entrar en la sección crítica\n");
         sleep(SLEEP);
         printf("Intentando entrar a la sección crítica\n");
+
+
+
         // Semaforo de exclusión mutua aquí
         sem_wait(&sem_mutex);
         quiero = 1;
@@ -128,27 +135,19 @@ void* enviar(void *args)
         }
         // printf"Reciviendo mensajes para a todos los nodos\n");
 
-        // Tenemos que recibir mensajes de todos los nodos para poder ejecutar la sección crítica
-        for (int i = 1; i <= n_nodos; i++){
-            // Intentaresmo recibir respuesta de todos los nodos y cuando esto pase iremos a nuestra sección crítica
-            if (i != mi_id)
-            {
-                msgrcv(msg_ack_id, &msg_ticket, sizeof(mensaje), mi_id, 0); //Recivimos el mensajes de tipo ack
-                
-                printf("Recivimos el mensaje de confirmación del nodo %i\n",msg_ticket.id_origen);
-            }
-        } 
+        if (n_nodos > 1){ sem_wait(&sem_SC); } // Comprovamos que no estamos solos para poder entrar en la sección critica
+        // El hilo recibir se encargará de sincronizarse con este para entran en la sección crítica
+        
         ///SECCIÓN CRÍTICA;
+        msg_semaforo.mtype = SEM_SYNC_INIT;
+        msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Avisamos que puede entrar en la sección crítica
 
-        // Aquí tenemos que poner un semaforo de sincronizacion con el proceso para que puenda entrar en sección crítica
-        sem_post(&semaforos->sem_sync_init);
-
-        // Aquí tenemos que poner un semaforo para que el proceso se sincronice con nosotros y así poder salir de la sección crítica
-        sem_wait(&semaforos->sem_sync_end);
+        msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_END, 0);  // Esperamos a que termine la sección crítica
         // Fin sección crítica
 
+        // if (n_nodos > 1){ sem_post(&sem_SC); } 
+        
 
-        sem_post(&semaforos->sem_sync_intentar);
 
         quiero = 0;
 
@@ -156,7 +155,8 @@ void* enviar(void *args)
             // Enviamos los mensajes que nos quedasen pendientes de enviar
             msg_ticket.mtype = id_nodos_pend[i];
             msg_ticket.id_origen = mi_id;
-            msgsnd(msg_ack_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+            msg_ticket.ticket_origen = ACK;
+            msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
             // printf"Enviando el ack al nodo %li desde el nodo %li\n",msg_ticket.mtype,mi_id);
         }
         
@@ -168,25 +168,52 @@ void* enviar(void *args)
 // Creamos la funcion que se encargará de recibir los mensajes
 void recibir() {
     mensaje msg_recibir;
+    int ack_recividos = n_nodos;
     printf("Ejecutando hilo\n");
     while (1) {
         
-        msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0);
-        // printf("Recivimos un mensaje del nodo %i con tipo %li yl el ticket es %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen);
+        msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
+        printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen);
+        
 
         // Semaforo de exclusión mutua aquí
         sem_wait(&sem_mutex);
         // asignamos el valor maximo a ticket maximo
         if (msg_recibir.ticket_origen > max_ticket){ max_ticket = msg_recibir.ticket_origen; }
 
-        if ((quiero == 0 || msg_recibir.ticket_origen < mi_ticket || (msg_recibir.ticket_origen == mi_ticket && (msg_recibir.id_origen < mi_id)))){
+
+        if  (
+            (
+                quiero == 0 
+                || msg_recibir.ticket_origen < mi_ticket 
+                || (
+                    msg_recibir.ticket_origen == mi_ticket 
+                    && msg_recibir.id_origen < mi_id
+                    )
+            ) 
+            && 
+                (msg_recibir.ticket_origen != ACK))
+            {
             // En caso de que no queramos enviar un ticket quiero = 0
             // En caso de que el ticket recivido sea menor que nuestro ticket
             // Si nuestro ticket es igual al recivido pero nuestro id es mayor que el del origen
             msg_recibir.mtype = (long) msg_recibir.id_origen;
             msg_recibir.id_origen = (int) mi_id;
-            msgsnd(msg_ack_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
+            msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
+            msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
             // printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
+
+
+
+        }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
+        {
+            ack_recividos--; 
+            printf("Ack recividos %i\n",ack_recividos);
+            if (ack_recividos == 1) // Comprobamos que tenemos todos los ack
+            {
+                sem_post(&sem_SC);  // Indicamos al hilo enviar que puede continuar
+                ack_recividos = n_nodos; // Volvemos a actualizar el contador de ack
+            }
         }
         else {
             num_pend++;

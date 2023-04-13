@@ -6,19 +6,24 @@
 #include <sys/stat.h> // memoria compartida
 #include <string.h> // Cadenas de texto
 
+
+
+
+#define SEM_MUTEX 1
+#define SEM_SYNC_INIT 2
+#define SEM_SYNC_END 3
+#define SEM_SYNC_INTENTAR 4
+#define ACK 0
+
 typedef struct
 {
-    sem_t sem_mutext; // Semaforo de exclusion mutua para que no puedan entrar varios procesos a la sección crítica
-    sem_t sem_sync_init; // Semáforo de sincronizacion para avisar al proceso recivir que se quiere entrar en la SC
-    sem_t sem_sync_end; // Semáforo de sincronizacion para avisar al proceso recivir que se quiere salir de la SC
-    sem_t sem_sync_intentar; // Semáforo para intentar entrar en la sección crítica
+    long mtype; 
 }semaforo;
-// Todos los semáforos los inicializa el proceso recibir();
-int semaforos_id;
 
 
 
-#define N 1000
-#define SLEEP 1
 
+#define N 1000 //Numero maximo de procesos y de nodos en el sistema
+#define SLEEP 3 // Tiempo de espera para poder ver bien lo que hace
+ 
 #endif
