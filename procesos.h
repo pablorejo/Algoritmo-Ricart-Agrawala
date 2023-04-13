@@ -25,5 +25,10 @@ typedef struct
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
 #define SLEEP 3 // Tiempo de espera para poder ver bien lo que hace
- 
+
+
+
+// #define __PRINT // Comentar en caso de que no se quiera imprimir mensajes
+#define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
+
 #endif

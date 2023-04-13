@@ -23,13 +23,19 @@ int main(int argc, char const *argv[])
 {
     int keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
     pid = getpid();
+
+    #ifdef __PRINT
     printf("Soy el proceso con pid %i\n",pid);
+    #endif 
 
     int msg_semaforo_id;
     key_t key = ftok("recibir.c",1);
     msg_semaforo_id = msgget(key+keyNodo,0660 | IPC_CREAT); // Creamos el buzón
+
+
+    #ifdef __PRINT
     printf("Key: %i y id del buzon %i\n",key+keyNodo,msg_semaforo_id);
-    
+    #endif 
 
 
     while (1)
@@ -49,6 +55,8 @@ int main(int argc, char const *argv[])
 
         msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INIT, 0); // Recivimos sincronizacion para entrar en la seccion critcia
         
+        #ifdef __PRINT_SC
+        
         sleep(SLEEP);
         // SECION CRÍTICA
         printf("El proceso %i está en la sección crítica\n",pid);
@@ -59,6 +67,8 @@ int main(int argc, char const *argv[])
         // while (getchar() != '\n') {} // Esperamos a que se introduzca un enter
         printf("El proceso %i abandonó la sección crítica\n",pid);
         // TERMINA LA SECCIÓN CRÍTICA
+        
+        #endif // DEBUG
 
 
         msg_semaforo.mtype = SEM_SYNC_END;

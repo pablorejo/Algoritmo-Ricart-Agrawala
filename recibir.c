@@ -65,7 +65,12 @@ int main(int argc, char const *argv[])
         }
     }
     
+    #ifdef __PRINT
     printf("Mi id es %li y el N de nodos es %i\n",mi_id,n_nodos);
+    #endif // DEBUG
+
+
+
     key_t key = ftok("recibir.c",1);
 
 
@@ -74,10 +79,12 @@ int main(int argc, char const *argv[])
     msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
     msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
 
+
+    #ifdef __PRINT
     printf("Key 1: %i e id del buzón %i\n",key,msg_tickets_id);
 
     printf("Key 2: %li e id del buzón %i\n",key+N+mi_id,msg_semaforo_id);
-    
+    #endif // DEBUG
  
 
     msg_ticket.mtype = mi_id;
@@ -102,16 +109,26 @@ int main(int argc, char const *argv[])
 
 void* enviar(void *args) 
 {
+
+    #ifdef __PRINT
     printf("Funcion enviar ok\n");
+    #endif 
+
+    
     while (1){
-        printf("Esperando semaforo\n");
+        #ifdef __PRINT
+            printf("Esperando semaforo\n");
+        #endif 
 
         msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INTENTAR, 0); // Esperamos hasta que el proceso quiera entrar en la sección crítica
 
         // printf("Pulsa enter para entrar en la sección crítica\n");
         sleep(SLEEP);
-        printf("Intentando entrar a la sección crítica\n");
 
+
+        #ifdef __PRINT
+            printf("Intentando entrar a la sección crítica\n");
+        #endif 
 
 
         // Semaforo de exclusión mutua aquí
@@ -122,7 +139,12 @@ void* enviar(void *args)
         // Termina el semaforo
         // printf("Mi ticket es %i\n",msg_ticket.ticket_origen);
 
-        printf("Enviando mensajes para a todos los nodos\n");
+
+        #ifdef __PRINT
+            printf("Enviando mensajes para a todos los nodos\n");
+        #endif 
+
+
         for (int i = 0; i < n_nodos; i++) {
             //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
             if (id_nodos[i] != mi_id){
@@ -173,7 +195,10 @@ void recibir() {
     while (1) {
         
         msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
+
+        #ifdef __PRINT
         printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen);
+        #endif 
         
 
         // Semaforo de exclusión mutua aquí
@@ -208,7 +233,12 @@ void recibir() {
         }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
         {
             ack_recividos--; 
+
+            #ifdef __PRINT
             printf("Ack recividos %i\n",ack_recividos);
+            #endif // DEBUG
+
+
             if (ack_recividos == 1) // Comprobamos que tenemos todos los ack
             {
                 sem_post(&sem_SC);  // Indicamos al hilo enviar que puede continuar
@@ -223,3 +253,4 @@ void recibir() {
         // Termina el semaforo de exclusion mutua
     }
 }
+
