@@ -6,7 +6,7 @@
 
 
 int mi_ticket = 0, id_nodos_pend[N-1] = {0}, id_nodos[N-1] = {0}, 
-    num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1;
+    num_pend = 0, quiero = 0, max_ticket = 0, n_nodos = N-1, ctrl_c = 0;
 
 int msg_tickets_id,msg_semaforo_id; //id del buzón
 
@@ -22,11 +22,14 @@ semaforo msg_semaforo;
 
 sem_t sem_mutex;
 sem_t sem_SC;
+sem_t sem_ctrl_c;
 pthread_t thread_enviar;
-
+pthread_t thread_ctrl_c;
 
 void recibir();
 void* enviar(void *args);
+void* fun_ctrl_c(void *args);
+void catch_ctrl_c(int sig);
 
 int main(int argc, char const *argv[])
 {
@@ -76,6 +79,7 @@ int main(int argc, char const *argv[])
     // iniciamos los semáforos
     sem_init(&sem_mutex,0,1); // Semaforo de exclusión mutua para las variables
     sem_init(&sem_SC,0,0); // Semaforo de paso para el nodo
+    sem_init(&sem_ctrl_c,0,0); // Semáforo de paso por si se desea cancelar la ejecucion del nodo
 
 
 
@@ -85,7 +89,10 @@ int main(int argc, char const *argv[])
 
 
     pthread_create(&thread_enviar, NULL, enviar, NULL);
-    
+    pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
+    // Controlar el ctrl+c
+    signal(SIGINT, &catch_ctrl_c);
+
     recibir();
     return 0;
 }
@@ -264,3 +271,34 @@ void recibir() {
     }
 }
 
+
+void* fun_ctrl_c(void *args) {
+    #ifdef __PRINT_CTRL_C
+        printf("Funcion control de terminar el programa funcionando bien\n");
+    #endif // DEBUG
+
+
+    sem_wait(&sem_ctrl_c);
+
+    #ifdef __PRINT_CTRL_C
+        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
+        printf("Eliminando los buzones...\n\n\n\n");
+    #endif // DEBUG
+
+    if (msgctl(msg_semaforo_id, IPC_RMID, NULL) == -1) {
+        perror("Fallo al eliminar el buzon msg_semaforo_id");
+        exit(-1);
+    }
+    if (msgctl(msg_tickets_id, IPC_RMID, NULL) == -1) {
+        perror("Fallo al eliminar el buzon msg_tickets_id con");
+        perror("msgctl");
+        exit(-1);
+    }
+    exit(0);
+}
+
+
+void catch_ctrl_c(int sig)
+{
+    sem_post(&sem_ctrl_c);
+}
