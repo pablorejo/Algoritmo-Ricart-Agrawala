@@ -7,22 +7,29 @@ int pid;
 semaforo msg_semaforo;
 int ctrl_c = 0;
 
+int tipo_proceso;
 
 void catch_ctrl_c(int sig);
 
 int main(int argc, char const *argv[])
 {
     int keyNodo;
-    if (argc < 2){
+    if (argc < 3){
         // #ifdef __PRINT_PROCESO
         //     printf("Error introduce el numero de id de su nodo");
         // #endif // DEBUG
 
         // exit(-1);
         keyNodo = 2;
+        tipo_proceso = 0;
+
     }else {
-        keyNodo = atoi (argv[1]); // tiene que ser igual a la id del nodo
+        keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
+        tipo_proceso = atoi(argv[2]); 
     }
+
+    
+
     pid = getpid();
 
     #ifdef __PRINT_PROCESO
@@ -76,7 +83,6 @@ int main(int argc, char const *argv[])
         msg_semaforo.mtype = SEM_SYNC_INTENTAR;
         msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Intentamos entrar en la seccion critica avisamos al recividor
 
-
         msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_INIT, 0); // Recivimos sincronizacion para entrar en la seccion critcia
 
         #ifdef __PRINT_SC
@@ -101,8 +107,6 @@ int main(int argc, char const *argv[])
         msg_semaforo.mtype = SEM_MUTEX;
         msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Permitimos a otros entrar en la seccion crítica
 
-        
-        
     }
     
     return 0;

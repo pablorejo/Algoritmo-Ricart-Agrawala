@@ -29,6 +29,13 @@ typedef struct
     int ticket_origen;
 }mensaje;
 
+typedef struct
+{
+    long mtype ; // ID del proceso origen
+    int tipo_de_proceso; // Tipo de proceso
+}procesos;
+
+
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
 #define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
@@ -40,4 +47,12 @@ typedef struct
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 
+
+// Rangos de los tickets con prioridades
+#define PAGOS_ADMINISTRACION 1000 // Tieckets del 0 al 1000 tienen esta prioridad
+#define RESERVAS 2000 // Tickets del 1001 al 2000 tienen esta prioridad
+#define ANULACIONES 3000 // Tickets del 2001 al 3000 tienen esta prioridad
+#define CONSULTAS 4000 // Tickets del 3001 en adelante tienen esta otra prioridad
+
+#define PROCESO_SYNC 1
 #endif
