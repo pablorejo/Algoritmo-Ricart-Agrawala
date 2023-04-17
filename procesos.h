@@ -27,6 +27,7 @@ typedef struct
     long mtype ; // Donde guardaremos el nodo origen
     int id_origen;
     int ticket_origen;
+    int prioridad; // Tendremos que pasar la prioridad del proceso 
 }mensaje;
 
 typedef struct
@@ -49,10 +50,10 @@ typedef struct
 
 
 // Rangos de los tickets con prioridades
-#define PAGOS_ADMINISTRACION 1000 // Tieckets del 0 al 1000 tienen esta prioridad
-#define RESERVAS 2000 // Tickets del 1001 al 2000 tienen esta prioridad
-#define ANULACIONES 3000 // Tickets del 2001 al 3000 tienen esta prioridad
-#define CONSULTAS 4000 // Tickets del 3001 en adelante tienen esta otra prioridad
+#define PAGOS_ANULACIONES 1 
+#define ADMINISTRACION 2 
+#define RESERVAS 3 
+#define CONSULTAS 4 
 
 #define PROCESO_SYNC 1
 #endif

@@ -13,9 +13,9 @@ int msg_tickets_id,msg_semaforo_id,msg_procesos_id; //id del buzón
 long mi_id;
 int procesos_pendientes = 0;
 
-procesos cola_pagos_administracion[N]; int procesos_pendientes_P_A;
+procesos cola_pagos_anulaciones[N]; int procesos_pendientes_P_A;
+procesos cola_administracion[N]; int procesos_pendientes_A;
 procesos cola_reservas[N]; int procesos_pendientes_R;
-procesos cola_anulaciones[N]; int procesos_pendientes_A;
 procesos cola_consultas[N]; int procesos_pendientes_C;
 
 
@@ -113,14 +113,14 @@ void* prioridades(void *args){
 
         switch (msg_proceso.tipo_de_proceso)
         {
-        case PAGOS_ADMINISTRACION:
-            cola_pagos_administracion[procesos_pendientes_P_A] = msg_proceso;
+        case PAGOS_ANULACIONES:
+            cola_pagos_anulaciones[procesos_pendientes_P_A] = msg_proceso;
+            procesos_pendientes_P_A ++;
+        case ADMINISTRACION:
+            cola_administracion[procesos_pendientes_A] = msg_proceso;
             procesos_pendientes_P_A ++;
         case RESERVAS:
             cola_reservas[procesos_pendientes_R] = msg_proceso;
-            procesos_pendientes_P_A ++;
-        case ANULACIONES:
-            cola_anulaciones[procesos_pendientes_A] = msg_proceso;
             procesos_pendientes_P_A ++;
         case CONSULTAS:
             cola_consultas[procesos_pendientes_C] = msg_proceso;
