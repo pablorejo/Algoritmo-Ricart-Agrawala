@@ -8,6 +8,7 @@
 #include <stdlib.h> // Para el atoi
 #include <signal.h> // Para capturar el ctrl+c y así liberar la exclusión mutua en caso de que sea necesario
 
+#include <semaphore.h>
 
 #define SEM_MUTEX 1
 #define SEM_SYNC_INIT 2
