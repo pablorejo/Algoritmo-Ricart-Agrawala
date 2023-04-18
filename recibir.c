@@ -34,6 +34,9 @@ sem_t sem_proceso_entra;
 pthread_t thread_enviar;
 pthread_t thread_ctrl_c;
 
+
+memoria_compartida *mem;
+
 void recibir();
 void* enviar(void *args);
 void* fun_ctrl_c(void *args);
@@ -71,12 +74,10 @@ int main(int argc, char const *argv[])
     key_t key = ftok(".",1);
 
     msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
-    msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
-    msg_procesos_id = msgget(key+mi_id+N,0660 | IPC_CREAT); // Buzon enviar peticiones de procesamiento
 
 
     // Memoria compartida
-    memoria_compartida *mem;
+    
     int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
     int msg_memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), permisos | IPC_CREAT);
     mem = shmat(msg_memoria_id, NULL, 0);
@@ -97,6 +98,13 @@ int main(int argc, char const *argv[])
     mem->tenemos_SC = 0;
     mem->procesos_c = 0;
     mem->procesos_a_pend = 0; mem->procesos_c_pend = 0; mem->procesos_r_pend = 0; mem->procesos_p_a_pend = 0;
+
+
+
+    // Semaforos de sincronizacion con el proceso recivir
+    sem_init(&mem->sem_sync_init,0,0);
+    sem_init(&mem->sem_sync_end,0,0);
+    sem_init(&mem->sem_sync_intentar,0,0);
     ///////// Fin memoria compartida
 
     
@@ -118,8 +126,6 @@ int main(int argc, char const *argv[])
 
 
 
-    msg_semaforo.mtype = SEM_MUTEX;
-    msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); //Enviamos un mensaje a todos los proceso de tipo 1 para que puedan entrar en la seccion crítica
 
 
 
@@ -132,7 +138,7 @@ int main(int argc, char const *argv[])
     return 0;
 }
 void* prioridades(void *args){
-    msgrcv(msg_procesos_id, &msg_proceso, sizeof(procesos), SEM_SYNC_INTENTAR, 0); // Esperamos hasta que el proceso quiera entrar en la sección crítica
+    sem_wait(&mem->sem_sync_intentar);// Esperamos hasta que el proceso quiera entrar en la sección crítica
     
     if (procesos_pendientes > 0){
 
@@ -173,6 +179,8 @@ void* enviar(void *args)
 
     
     while (1){
+
+
         #ifdef __PRINT_RECIBIR
         printf("Esperando semaforo\n");
         #endif 
@@ -193,10 +201,6 @@ void* enviar(void *args)
 
 
         // Semaforo de exclusión mutua aquí
-        sem_wait(&sem_mutex);
-        quiero = 1;
-        mi_ticket = max_ticket + 1;
-        sem_post(&sem_mutex);
         // Termina el semaforo
 
         #ifdef __PRINT_RECIBIR
@@ -228,12 +232,6 @@ void* enviar(void *args)
         if (n_nodos > 1){ sem_wait(&sem_SC); } // Comprovamos que no estamos solos para poder entrar en la sección critica
         // El hilo recibir se encargará de sincronizarse con este para entran en la sección crítica
         
-        ///SECCIÓN CRÍTICA;
-        msg_semaforo.mtype = SEM_SYNC_INIT;
-        msgsnd(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), 0); // Avisamos que puede entrar en la sección crítica
-
-        msgrcv(msg_semaforo_id, &msg_semaforo, sizeof(semaforo), SEM_SYNC_END, 0);  // Esperamos a que termine la sección crítica
-        // Fin sección crítica
 
         
         

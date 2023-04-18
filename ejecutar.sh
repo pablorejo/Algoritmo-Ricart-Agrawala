@@ -1,5 +1,6 @@
 #!/bin/bash
 gcc recibir.c -o recibir -Wall
+mv recibir procesos_bin
 cd procesos
 gcc pagos.c -o pagos -Wall
 gcc anulaciones.c -o anulaciones -Wall

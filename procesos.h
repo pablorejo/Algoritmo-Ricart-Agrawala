@@ -14,10 +14,6 @@
 #include <sys/ipc.h>
 #include <sys/shm.h> // Para memoria compartida
 
-#define SEM_MUTEX 1
-#define SEM_SYNC_INIT 2
-#define SEM_SYNC_END 3
-#define SEM_SYNC_INTENTAR 4
 #define ACK 0
 
 #define ID_NODO_CONTROLADOR 1
@@ -26,6 +22,10 @@ typedef struct
 {
     long mtype; 
 }semaforo;
+
+
+
+
 
 typedef struct 
 {
@@ -41,6 +41,8 @@ typedef struct
     int tipo_de_proceso; // Tipo de proceso
 }procesos;
 
+
+// Estrucutura de la memoria compartida
 typedef struct 
 {
     // Memoria compartida
@@ -52,6 +54,15 @@ typedef struct
     sem_t sem_cosultas,sem_reservas,sem_administracion; // Semaforos de paso 
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
     // Fin memória compartida
+
+    // Semaforos de sincronizacion con el proceso recivir
+    sem_t sem_sync_init;
+    sem_t sem_sync_end;
+    sem_t sem_sync_intentar;
+    // Fin de los semaforos de sincronizacion con el proceso recivir
+
+
+
 }memoria_compartida;
 
 
