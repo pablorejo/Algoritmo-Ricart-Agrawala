@@ -26,7 +26,6 @@ typedef struct
 
 
 
-
 typedef struct 
 {
     long mtype ; // Donde guardaremos el nodo origen
@@ -34,12 +33,6 @@ typedef struct
     int ticket_origen;
     int prioridad; // Tendremos que pasar la prioridad del proceso 
 }mensaje;
-
-typedef struct
-{
-    long mtype ; // ID del proceso origen
-    int tipo_de_proceso; // Tipo de proceso
-}procesos;
 
 
 // Estrucutura de la memoria compartida

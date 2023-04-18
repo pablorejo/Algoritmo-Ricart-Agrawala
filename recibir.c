@@ -13,10 +13,6 @@ int msg_tickets_id,msg_semaforo_id,msg_procesos_id; //id del buzón
 long mi_id;
 int procesos_pendientes = 0;
 
-procesos cola_pagos_anulaciones[N]; int procesos_pendientes_P_A;
-procesos cola_administracion[N]; int procesos_pendientes_A;
-procesos cola_reservas[N]; int procesos_pendientes_R;
-procesos cola_consultas[N]; int procesos_pendientes_C;
 
 
 
@@ -24,7 +20,6 @@ procesos cola_consultas[N]; int procesos_pendientes_C;
 // Buzones
 mensaje msg_ticket;
 semaforo msg_semaforo;
-procesos msg_proceso;
 
 
 sem_t sem_mutex;
@@ -137,38 +132,7 @@ int main(int argc, char const *argv[])
     recibir();
     return 0;
 }
-void* prioridades(void *args){
-    sem_wait(&mem->sem_sync_intentar);// Esperamos hasta que el proceso quiera entrar en la sección crítica
-    
-    if (procesos_pendientes > 0){
 
-        switch (msg_proceso.tipo_de_proceso)
-        {
-        case PAGOS_ANULACIONES:
-            cola_pagos_anulaciones[procesos_pendientes_P_A] = msg_proceso;
-            procesos_pendientes_P_A ++;
-        case ADMINISTRACION:
-            cola_administracion[procesos_pendientes_A] = msg_proceso;
-            procesos_pendientes_P_A ++;
-        case RESERVAS:
-            cola_reservas[procesos_pendientes_R] = msg_proceso;
-            procesos_pendientes_P_A ++;
-        case CONSULTAS:
-            cola_consultas[procesos_pendientes_C] = msg_proceso;
-            procesos_pendientes_P_A ++;
-        default:
-            printf("Error tipo de mensaje recivido %i", msg_proceso.tipo_de_proceso);
-            exit(-1);
-            break;
-        }
-        procesos_pendientes ++;
-    }else
-    {
-        sem_post(&sem_proceso_entra); // Hacemos que el proceso pueda entrar en la sección crítica
-    }
-    return 0;
-    
-}
 
 void* enviar(void *args) 
 {
@@ -180,7 +144,7 @@ void* enviar(void *args)
     
     while (1){
 
-
+        sem_wait(&mem->sem_sync_intentar); // Esperamos a recivir alguna peticion 
         #ifdef __PRINT_RECIBIR
         printf("Esperando semaforo\n");
         #endif 
@@ -201,6 +165,10 @@ void* enviar(void *args)
 
 
         // Semaforo de exclusión mutua aquí
+        sem_wait(&sem_mutex);
+        quiero = 1;
+        mi_ticket = max_ticket + 1;
+        sem_post(&sem_mutex);
         // Termina el semaforo
 
         #ifdef __PRINT_RECIBIR
@@ -232,13 +200,13 @@ void* enviar(void *args)
         if (n_nodos > 1){ sem_wait(&sem_SC); } // Comprovamos que no estamos solos para poder entrar en la sección critica
         // El hilo recibir se encargará de sincronizarse con este para entran en la sección crítica
         
+        ///SECCIÓN CRÍTICA;
+        sem_post(&mem->sem_sync_init);// Avisamos que puede entrar en la sección crítica
+
+        sem_wait(&mem->sem_sync_end);// Esperamos a que termine la sección crítica
+        // Fin sección crítica
 
         
-        
-
-
-        
-
         if (procesos_pendientes > 0)
         {
             break;

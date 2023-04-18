@@ -56,6 +56,9 @@ int main(int argc, char const *argv[])
         if (mem->procesos_p_a_pend == 0){ // En caso de que no haya procesos prioritarios intentando entrar en la SC
             
             sem_post(&mem->sem_aux_variables); 
+            sem_post(&mem->sem_sync_intentar);
+
+            sem_wait(&mem->sem_sync_init);
             sem_wait(&mem->sem_mutex); // Intentamos entrar en la SC
 
 
@@ -67,6 +70,7 @@ int main(int argc, char const *argv[])
             #endif 
             // FIN SECCIÓN CRÍTICA
 
+            sem_post(&mem->sem_sync_end);
 
             sem_wait(&mem->sem_aux_variables);
             mem->procesos_a_pend --;
