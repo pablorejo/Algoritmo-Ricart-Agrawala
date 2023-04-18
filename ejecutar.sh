@@ -1,4 +1,5 @@
 #!/bin/bash
+mkdir procesos_bin
 gcc recibir.c -o recibir -Wall
 mv recibir procesos_bin
 cd procesos
