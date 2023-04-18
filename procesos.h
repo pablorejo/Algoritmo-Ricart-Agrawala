@@ -10,6 +10,10 @@
 
 #include <semaphore.h>
 
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/shm.h> // Para memoria compartida
+
 #define SEM_MUTEX 1
 #define SEM_SYNC_INIT 2
 #define SEM_SYNC_END 3
@@ -37,6 +41,20 @@ typedef struct
     int tipo_de_proceso; // Tipo de proceso
 }procesos;
 
+typedef struct 
+{
+    // Memoria compartida
+    int  procesos_c;
+    int procesos_p_a_pend, procesos_a_pend, procesos_r_pend, procesos_c_pend;
+
+    sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
+    sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
+    sem_t sem_cosultas,sem_reservas,sem_administracion; // Semaforos de paso 
+    int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
+    // Fin memória compartida
+}memoria_compartida;
+
+
 
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
@@ -45,7 +63,7 @@ typedef struct
 
 
 #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
-#define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
+// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 

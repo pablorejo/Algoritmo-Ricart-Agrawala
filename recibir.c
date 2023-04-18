@@ -42,16 +42,16 @@ void catch_ctrl_c(int sig);
 int main(int argc, char const *argv[])
 {
     if (argc < 3){
-        printf("Introduce el id y cuantos procesos hay\n");
-        exit(-1);
+        // printf("Introduce el id y cuantos procesos hay\n");
+        // exit(-1);
 
 
-        // mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        // n_nodos = 2; // Numero de procesos totales
-        // // Guardando ids de los procesos
-        // for (int i = 0; i < n_nodos; i++){
-        //     id_nodos[i] = i+1;
-        // }
+        mi_id = 1; // Guardamos el id que nos otorgara el usuario    
+        n_nodos = 2; // Numero de procesos totales
+        // Guardando ids de los procesos
+        for (int i = 0; i < n_nodos; i++){
+            id_nodos[i] = i+1;
+        }
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -73,6 +73,31 @@ int main(int argc, char const *argv[])
     msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
     msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón
     msg_procesos_id = msgget(key+mi_id+N,0660 | IPC_CREAT); // Buzon enviar peticiones de procesamiento
+
+
+    // Memoria compartida
+    memoria_compartida *mem;
+    int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
+    int msg_memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), permisos | IPC_CREAT);
+    mem = shmat(msg_memoria_id, NULL, 0);
+
+    ///////// Inicializamos la memoria compartida
+
+    // Inicializamos los semaforos de exclusion mutua
+    sem_init(&mem->sem_aux_variables,0,1); // Semaforo para leer las variables de la memoria compartida
+    sem_init(&mem->sem_mutex,0,1); // Semaforo para entrar en la seccion crítica
+
+    // Semaforos de paso 
+    sem_init(&mem->sem_cosultas,0,0);
+    sem_init(&mem->sem_reservas,0,0);
+    sem_init(&mem->sem_administracion,0,0);
+
+
+    // Inicializamos las variables a 0
+    mem->tenemos_SC = 0;
+    mem->procesos_c = 0;
+    mem->procesos_a_pend = 0; mem->procesos_c_pend = 0; mem->procesos_r_pend = 0; mem->procesos_p_a_pend = 0;
+    ///////// Fin memoria compartida
 
     
     #ifdef __PRINT_RECIBIR
@@ -135,6 +160,7 @@ void* prioridades(void *args){
     {
         sem_post(&sem_proceso_entra); // Hacemos que el proceso pueda entrar en la sección crítica
     }
+    return 0;
     
 }
 
@@ -238,6 +264,7 @@ void* enviar(void *args)
             num_pend = 0;
         }
     }
+    return 0;
 }
 
 
