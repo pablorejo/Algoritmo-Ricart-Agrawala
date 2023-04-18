@@ -70,10 +70,12 @@ int main(int argc, char const *argv[])
 
             sem_wait(&mem->sem_aux_variables);
             mem->procesos_r_pend --;
-            if ((mem->procesos_a_pend == 0 && mem->procesos_p_a_pend == 0 && mem->procesos_r_pend == 0 && mem->procesos_c_pend > 0)){
-                sem_post(&mem->sem_mutex); // Hacemos que otros procesos puedan entrar en la seccion critica
-                sem_post(&mem->sem_cosultas); // Hacemos que el proceso de consultas pueda intentar entrar en la SC 
+            if (mem->procesos_p_a_pend == 0 && mem->procesos_a_pend == 0 && mem->procesos_r_pend == 0){ // Comprobamos cual es el siguiente proceso mas prioritario para que se ejecute
+                if (mem->procesos_c_pend > 0){
+                    sem_post(&mem->sem_cosultas);
+                }
             }
+            sem_post(&mem->sem_mutex); 
             sem_post(&mem->sem_aux_variables); 
         }else{
 

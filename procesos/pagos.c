@@ -5,7 +5,6 @@ int pid;
 int main(int argc, char const *argv[])
 {
     int keyNodo;
-    int quiero = 0; // Variable para saber si ya te as puesto a la cola
     if (argc < 2){
         // #ifdef __PRINT_PROCESO
         //     printf("Error introduce el numero de id de su nodo");
