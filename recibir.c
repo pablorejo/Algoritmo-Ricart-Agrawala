@@ -68,7 +68,7 @@ int main(int argc, char const *argv[])
 
 
 
-    key_t key = ftok("recibir.c",1);
+    key_t key = ftok(".",1);
 
     msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
     msg_semaforo_id = msgget(key+mi_id,0660 | IPC_CREAT); // Creamos el buzón

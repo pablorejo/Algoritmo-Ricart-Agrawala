@@ -11,4 +11,7 @@ gcc consultas.c -o consultas -Wall
 mv * ../procesos_bin
 
 cd ../procesos_bin
-rm *.c
+ 
+mv *.c  ../procesos
+
+cd ..

@@ -1,4 +1,4 @@
-#include "procesos.h"
+#include "../procesos.h"
 
 int pid;
 
@@ -30,7 +30,7 @@ int main(int argc, char const *argv[])
     memoria_compartida *mem;
 
 
-    key_t key = ftok("recibir.c",1);
+    key_t key = ftok("..",1);
 
 
 
