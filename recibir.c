@@ -40,7 +40,7 @@ void recibir();
 void* enviar(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
-void ack(int * id_nodos_pend, int * nodos_pend);
+void ack(int id_nodos_pend[N-1], int nodos_pend);
 void enviar_acks();
 
 int main(int argc, char const *argv[])
@@ -237,15 +237,15 @@ void* enviar(void *args)
 
 void enviar_acks(){
     if (num_pend_p_a > 0){
-        ack(&id_nodos_pend_p_a, &id_nodos_pend_p_a);
+        ack(id_nodos_pend_p_a, num_pend_p_a);
     }else if (num_pend_a_r > 0)
     {
-        ack(&id_nodos_pend_a_r, &id_nodos_pend_a_r);
+        ack(id_nodos_pend_a_r, num_pend_a_r);
     }
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
-void ack(int * id_nodos_pend, int * nodos_pend){
+void ack(int id_nodos_pend[N-1], int nodos_pend){
     mensaje msg_tick;
     quiero = 0; 
     for (int i = 0; i < nodos_pend; i++){
@@ -360,12 +360,12 @@ void recibir() {
             {
             case PAGOS_ANULACIONES:
                 num_pend_p_a ++;
-                id_nodos_pend_p_a[num_pend_p_a];
+                id_nodos_pend_p_a[num_pend_p_a] = 1;
                 pri = PAGOS_ANULACIONES;
                 break;
             case ADMINISTRACION_RESERVAS:
                 num_pend_a_r ++;
-                id_nodos_pend_a_r[num_pend_a_r];
+                id_nodos_pend_a_r[num_pend_a_r] = 1;
                 pri = ADMINISTRACION_RESERVAS;
                 break;
             default:

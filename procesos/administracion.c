@@ -53,6 +53,9 @@ int main(int argc, char const *argv[])
         printf("Tenemos el libro\n");
         #endif 
         mem->procesos_a_r_pend ++; // Indicamos que el de reservas desea entrar
+
+
+
         if (mem->procesos_p_a_pend == 0){ // En caso de que no haya procesos prioritarios intentando entrar en la SC
             
             sem_post(&mem->sem_aux_variables); 
