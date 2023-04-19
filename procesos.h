@@ -40,12 +40,14 @@ typedef struct
 {
     // Memoria compartida
     int  procesos_c;
-    int procesos_p_a_pend, procesos_a_pend, procesos_r_pend, procesos_c_pend;
+    int procesos_p_a_pend, procesos_a_r_pend;
 
     sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
     sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
-    sem_t sem_cosultas,sem_reservas,sem_administracion; // Semaforos de paso 
+    sem_t sem_administracion_reservas, sem_pagos_anulaciones; // Semaforos de paso 
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
+
+    
     // Fin memória compartida
 
     // Semaforos de sincronizacion con el proceso recivir
@@ -69,14 +71,18 @@ typedef struct
 #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
 // #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
-#define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
+// #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 
 
-// Rangos de los tickets con prioridades
-#define PAGOS_ANULACIONES 1 
-#define ADMINISTRACION 2 
-#define RESERVAS 3 
-#define CONSULTAS 4 
+// Prioridades de los procesos
+// Cuanto mayor sea el numero mas prioridad tendra
+#define PAGOS_ANULACIONES 5
+#define ADMINISTRACION_RESERVAS 3
+#define CONSULTAS 1
+
+
+// definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
+#define N_MAX_INTENTOS 5
 
 #define PROCESO_SYNC 1
 #endif

@@ -52,7 +52,7 @@ int main(int argc, char const *argv[])
         #ifdef __PRINT_PROCESO
         printf("Tenemos el libro\n");
         #endif 
-        mem->procesos_a_pend ++; // Indicamos que el de reservas desea entrar
+        mem->procesos_a_r_pend ++; // Indicamos que el de reservas desea entrar
         if (mem->procesos_p_a_pend == 0){ // En caso de que no haya procesos prioritarios intentando entrar en la SC
             
             sem_post(&mem->sem_aux_variables); 
@@ -73,25 +73,17 @@ int main(int argc, char const *argv[])
             sem_post(&mem->sem_sync_end);
 
             sem_wait(&mem->sem_aux_variables);
-            mem->procesos_a_pend --;
-            if (mem->procesos_p_a_pend == 0 && mem->procesos_a_pend == 0){ // Comprobamos cual es el siguiente proceso mas prioritario para que se ejecute
-                if (mem->procesos_r_pend > 0){
-                    sem_post(&mem->sem_reservas);
-                }
-                else if (mem->procesos_c_pend > 0){
-                    sem_post(&mem->sem_cosultas);
-                }
-            }
+
             sem_post(&mem->sem_mutex); 
             sem_post(&mem->sem_aux_variables); 
         }else{
 
             if (quiero == 0){
-                mem->procesos_a_pend ++;
+                mem->procesos_a_r_pend ++;
                 quiero = 1;
             }
             sem_post(&mem->sem_aux_variables); 
-            sem_wait(&mem->sem_administracion); // Esperamos a que nos dejen intentar entrar en la SC
+            sem_wait(&mem->sem_administracion_reservas); // Esperamos a que nos dejen intentar entrar en la SC
 
         }
             
