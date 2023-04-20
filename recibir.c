@@ -17,7 +17,7 @@ int msg_tickets_id; //id del buzón
 long mi_id;
 int procesos_pendientes = 0;
 int prioridad_max_procesos;
-int prioridad_max_recivida_nodos = 10000;
+int prioridad_max_recivida_nodos = 0;
 
 
 
@@ -221,7 +221,9 @@ void* enviar(void *args)
         
         while (1){
             ///SECCIÓN CRÍTICA;
-
+            sem_wait(&(mem->sem_aux_variables));
+            mem->tenemos_SC = 1;
+            sem_post(&(mem->sem_aux_variables));
 
             // FIN DE LA SECCIÓN CRÍTICA
             sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
@@ -229,6 +231,10 @@ void* enviar(void *args)
             printf("Comprobando prioridades\n");
             
             sem_wait(&sem_mutex); // Para no enviar nada hasta enviar todos los acks
+
+
+            printf("prioridad_max_recivida_nodos %i\n",prioridad_max_recivida_nodos);
+            printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
             if (prioridad_max_procesos < prioridad_max_recivida_nodos){
                 enviar_acks();
                 max_intentos = N_MAX_INTENTOS; 
@@ -238,14 +244,26 @@ void* enviar(void *args)
                 {
                     enviar_acks();
                     max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
+                    break; // Salimos del bucle
                 }else {
                     max_intentos --;
                 }
-                break; // Salimos del bucle
-            }else {
                 
             }
             sem_post(&sem_mutex);
+
+
+            sem_wait(&(mem->sem_aux_variables));
+            if (mem->procesos_p_a_pend > 0)
+            {
+                sem_post(&(mem->sem_pagos_anulaciones));
+            }else if (mem->procesos_a_r_pend > 0){
+                sem_post(&(mem->sem_administracion_reservas));
+            }else {
+                break;
+            }
+            sem_post(&(mem->sem_aux_variables));
+            
         }
 
     }
