@@ -83,8 +83,6 @@ int main(int argc, char const *argv[])
 
     // Memoria compartida
     
-    memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
-    shmctl(memoria_id, IPC_RMID, NULL); // Eliminamos la zona de memoria compartida
 
     memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
     mem = shmat(memoria_id, NULL, 0);
@@ -126,8 +124,7 @@ int main(int argc, char const *argv[])
 
     // iniciamos los semáforos
     sem_init(&sem_mutex,1,1); // Semaforo de exclusión mutua para las variables
-    sem_init(&sem_ctrl_c,1,0); // Semáforo de paso por si se desea cancelar la ejecucion del nodo
-
+    sem_init(&sem_ctrl_c,1,0); // Semáforo de paso por si se desea cancelar la ejecucmax_ticket
 
 
 
@@ -158,9 +155,9 @@ void* enviar(void *args)
         #endif 
 
         sem_wait(&(mem->sem_sync_intentar)); // Esperamos a recivir alguna peticion 
-        int valor;
-        sem_getvalue(&(mem->sem_sync_intentar),&valor);
-        printf("%i\n",valor);
+        // int valor;
+        // sem_getvalue(&(mem->sem_sync_intentar),&valor);
+        // printf("%i\n",valor);
 
         #ifdef __PRINT_RECIBIR
         printf("Intentando entrar a la sección crítica\n");
@@ -192,6 +189,7 @@ void* enviar(void *args)
         {
             prioridad_max_procesos = ADMINISTRACION_RESERVAS;
         }
+    
         sem_post(&(mem->sem_aux_variables));
 
         for (int i = 0; i < n_nodos; i++) {
@@ -201,8 +199,19 @@ void* enviar(void *args)
                 msg_ticket.id_origen = mi_id;
                 msg_ticket.ticket_origen = mi_ticket;
                 msg_ticket.prioridad = prioridad_max_procesos; //Establecemos el mensaje de envio como la prioridad maxima entre nuestros procesos
+                switch (prioridad_max_procesos)
+                {
+                case ADMINISTRACION_RESERVAS:
+                    ack_enviados_a_r++;
+                    break;
+                case PAGOS_ANULACIONES:
+                    ack_enviados_p_a++;
+                    break;
+                default:
+                    break;
+                }
                 msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el ticket al nodo 
-
+                
 
                 #ifdef __PRINT_RECIBIR
                 printf("Enviando el mensaje %i al nodo %li desde el nodo %li\n",msg_ticket.ticket_origen,msg_ticket.mtype,mi_id);
@@ -217,6 +226,7 @@ void* enviar(void *args)
             // FIN DE LA SECCIÓN CRÍTICA
             sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
 
+            printf("Comprobando prioridades\n");
             
             sem_wait(&sem_mutex); // Para no enviar nada hasta enviar todos los acks
             if (prioridad_max_procesos < prioridad_max_recivida_nodos){
@@ -232,6 +242,8 @@ void* enviar(void *args)
                     max_intentos --;
                 }
                 break; // Salimos del bucle
+            }else {
+                
             }
             sem_post(&sem_mutex);
         }
@@ -307,10 +319,10 @@ void recibir() {
                             msg_recibir.ticket_origen == mi_ticket 
                             && msg_recibir.id_origen < mi_id
                             )
-                        || msg_recibir.prioridad > prioridad_max_procesos 
                     ) 
                 && 
                     (msg_recibir.ticket_origen != ACK)
+                && (msg_recibir.prioridad > prioridad_max_procesos )
                     
                     
             )
@@ -335,8 +347,14 @@ void recibir() {
 
         }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
         {
+            #ifdef __PRINT_RECIBIR
+            printf("Hemos recivido un ACK\n");
+            printf("pagos y anulaciones %i\n",ack_enviados_p_a);
+            printf("administracion y reservas %i\n",ack_enviados_a_r);
+            #endif // DEBUG
+
             // Para entrar en la seccion critica
-            switch (prioridad_max_procesos)
+            switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
                 ack_enviados_p_a--;
