@@ -71,6 +71,7 @@ typedef struct
 #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 // #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
+// #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
 
 
 // Prioridades de los procesos

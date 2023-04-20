@@ -47,13 +47,13 @@ int main(int argc, char const *argv[])
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
 
-        sem_wait(&mem->sem_aux_variables);
+        sem_wait(&(mem->sem_aux_variables));
         mem->procesos_a_r_pend ++; // Indicamos que el de pagos desea entrar
-        sem_post(&mem->sem_aux_variables); 
+        sem_post(&(mem->sem_aux_variables)); 
 
 
-        sem_post(&mem->sem_sync_intentar); // Inentamos entrar en la seccion critica
-        sem_wait(&mem->sem_administracion_reservas); // Nos dejan entrar en la SC
+        sem_post(&(mem->sem_sync_intentar)); // Inentamos entrar en la seccion critica
+        sem_wait(&(mem->sem_administracion_reservas)); // Nos dejan entrar en la SC
 
 
         // SECCIÓN CRÍTICA
@@ -65,11 +65,11 @@ int main(int argc, char const *argv[])
         // FIN SECCIÓN CRÍTICA
 
 
-        sem_wait(&mem->sem_aux_variables);
+        sem_wait(&(mem->sem_aux_variables));
         mem->procesos_a_r_pend --;
-        sem_post(&mem->sem_aux_variables); 
+        sem_post(&(mem->sem_aux_variables)); 
 
-        sem_post(&mem->sem_sync_end);// Hacemos que otros procesos puedan entrar en la seccion critica
+        sem_post(&(mem->sem_sync_end));// Hacemos que otros procesos puedan entrar en la seccion critica
         
             
     }

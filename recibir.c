@@ -33,7 +33,7 @@ sem_t sem_ctrl_c;
 pthread_t thread_enviar;
 pthread_t thread_ctrl_c;
 
-
+int memoria_id;
 memoria_compartida *mem;
 
 void recibir();
@@ -46,16 +46,20 @@ void enviar_acks();
 int main(int argc, char const *argv[])
 {
     if (argc < 3){
-        // printf("Introduce el id y cuantos procesos hay\n");
-        // exit(-1);
+        #ifndef DEBUG
+            printf("Introduce el id y cuantos nods hay\n");
+            exit(-1);
+        #endif // !DEBUG
 
+        #ifdef DEBUG
+            mi_id = 1; // Guardamos el id que nos otorgara el usuario    
+            n_nodos = 2; // Numero de procesos totales
+            // Guardando ids de los procesos
+            for (int i = 0; i < n_nodos; i++){
+                id_nodos[i] = i+1;
+            }
+        #endif // DEBUG
 
-        mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        n_nodos = 2; // Numero de procesos totales
-        // Guardando ids de los procesos
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -79,20 +83,22 @@ int main(int argc, char const *argv[])
 
     // Memoria compartida
     
-    int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
-    int msg_memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), permisos | IPC_CREAT);
-    mem = shmat(msg_memoria_id, NULL, 0);
+    memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
+    shmctl(memoria_id, IPC_RMID, NULL); // Eliminamos la zona de memoria compartida
 
+    memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
+    mem = shmat(memoria_id, NULL, 0);
     ///////// Inicializamos la memoria compartida
 
     // Inicializamos los semaforos de exclusion mutua
-    sem_init(&mem->sem_aux_variables,0,1); // Semaforo para leer las variables de la memoria compartida
+    sem_init(&(mem->sem_aux_variables),1,1); // Semaforo para leer las variables de la memoria compartida
+    printf("Hola\n");
 
-    sem_init(&mem->sem_mutex,0,1); // Semaforo para entrar en la seccion crítica
+    sem_init(&(mem->sem_mutex),1,1); // Semaforo para entrar en la seccion crítica
 
     // Semaforos de paso 
-    sem_init(&mem->sem_pagos_anulaciones,0,0);
-    sem_init(&mem->sem_administracion_reservas,0,0);
+    sem_init(&(mem->sem_pagos_anulaciones),1,0);
+    sem_init(&(mem->sem_administracion_reservas),1,0);
 
 
     // Inicializamos las variables a 0
@@ -100,18 +106,17 @@ int main(int argc, char const *argv[])
     mem->procesos_a_r_pend = 0; mem->procesos_p_a_pend = 0;
 
 
-
     // Semaforos de sincronizacion con el proceso recivir
-    sem_init(&mem->sem_sync_end,0,0);
-    sem_init(&mem->sem_sync_intentar,0,0);
+    sem_init(&(mem->sem_sync_end),1,0);
+    sem_init(&(mem->sem_sync_intentar),1,0);
     int valor;
-    sem_getvalue(&mem->sem_sync_intentar,&valor);
+    sem_getvalue(&(mem->sem_sync_intentar),&valor);
     printf("%i\n",valor);
     ///////// Fin memoria compartida
 
     
     #ifdef __PRINT_RECIBIR
-    printf("Key 1: %i e id del buzón %i\nID de la memoria compartida es %i\n",key,msg_tickets_id,msg_memoria_id);
+    printf("Key 1: %i e id del buzón %i\nID de la memoria compartida es %i\n",key,msg_tickets_id,memoria_id);
 
     #endif // DEBUG
  
@@ -120,8 +125,8 @@ int main(int argc, char const *argv[])
     msg_ticket.ticket_origen = mi_ticket;
 
     // iniciamos los semáforos
-    sem_init(&sem_mutex,0,1); // Semaforo de exclusión mutua para las variables
-    sem_init(&sem_ctrl_c,0,0); // Semáforo de paso por si se desea cancelar la ejecucion del nodo
+    sem_init(&sem_mutex,1,1); // Semaforo de exclusión mutua para las variables
+    sem_init(&sem_ctrl_c,1,0); // Semáforo de paso por si se desea cancelar la ejecucion del nodo
 
 
 
@@ -152,9 +157,9 @@ void* enviar(void *args)
         printf("Esperando semaforo\n");
         #endif 
 
-        sem_wait(&mem->sem_sync_intentar); // Esperamos a recivir alguna peticion 
+        sem_wait(&(mem->sem_sync_intentar)); // Esperamos a recivir alguna peticion 
         int valor;
-        sem_getvalue(&mem->sem_sync_intentar,&valor);
+        sem_getvalue(&(mem->sem_sync_intentar),&valor);
         printf("%i\n",valor);
 
         #ifdef __PRINT_RECIBIR
@@ -179,7 +184,7 @@ void* enviar(void *args)
         #endif 
         
 
-        sem_wait(&mem->sem_aux_variables);
+        sem_wait(&(mem->sem_aux_variables));
         if (mem->procesos_p_a_pend > 0)
         {
             prioridad_max_procesos = PAGOS_ANULACIONES;
@@ -187,7 +192,7 @@ void* enviar(void *args)
         {
             prioridad_max_procesos = ADMINISTRACION_RESERVAS;
         }
-        sem_post(&mem->sem_aux_variables);
+        sem_post(&(mem->sem_aux_variables));
 
         for (int i = 0; i < n_nodos; i++) {
             //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
@@ -210,7 +215,7 @@ void* enviar(void *args)
 
 
             // FIN DE LA SECCIÓN CRÍTICA
-            sem_wait(&mem->sem_sync_end);// Esperamos a que termine la sección crítica
+            sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
 
             
             sem_wait(&sem_mutex); // Para no enviar nada hasta enviar todos los acks
@@ -337,7 +342,7 @@ void recibir() {
                 ack_enviados_p_a--;
                 if (ack_enviados_p_a == 0)
                 {
-                    sem_post(&mem->sem_pagos_anulaciones);
+                    sem_post(&(mem->sem_pagos_anulaciones));
                 }
                 
                 break;
@@ -345,7 +350,7 @@ void recibir() {
                 ack_enviados_a_r--;
                 if (ack_enviados_a_r == 0)
                 {
-                    sem_post(&mem->sem_administracion_reservas);
+                    sem_post(&(mem->sem_administracion_reservas));
                 }
                 break;
             default:
@@ -389,14 +394,28 @@ void* fun_ctrl_c(void *args) {
 
     #ifdef __PRINT_CTRL_C
         printf("\n\n\nEl nodo va ha terminar su ejecución\n");
-        printf("Eliminando los buzones...\n\n\n\n");
+        printf("Eliminando buzon...\n\n\n\n");
     #endif // DEBUG
 
     if (msgctl(msg_tickets_id, IPC_RMID, NULL) == -1) {
         perror("Fallo al eliminar el buzon msg_tickets_id con");
-        perror("msgctl");
         exit(-1);
     }
+
+    #ifdef __PRINT_CTRL_C
+        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
+        printf("Eliminando memoria compartida...\n\n\n\n");
+    #endif // DEBUG
+
+    if (shmctl(memoria_id, IPC_RMID, NULL) == -1){// Eliminamos la zona de memoria compartida
+        perror("Fallo al eliminar el buzon msg_tickets_id con");
+        exit(-1);
+    } 
+
+    
+    #ifdef __PRINT_CTRL_C
+        printf("\n\nEliminado la memoria y el buzon con exito\n\n");
+    #endif // DEBUG
     exit(0);
 }
 

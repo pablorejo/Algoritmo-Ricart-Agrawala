@@ -10,12 +10,14 @@ int main(int argc, char const *argv[])
 {
     int keyNodo;
     if (argc < 2){
-        // #ifdef __PRINT_PROCESO
-        //     printf("Error introduce el numero de id de su nodo");
-        // #endif // DEBUG
+        #ifndef DEBUG
+            printf("Error introduce el numero de id de su nodo");
+            exit(-1);   
+        #endif // !DEBUG
 
-        // exit(-1);
-        keyNodo = 1;
+        #ifdef DEBUG
+            keyNodo = 1;
+        #endif // DEBUG
 
     }else {
         keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
@@ -51,24 +53,24 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
 
-        sem_wait(&mem->sem_aux_variables);
+        sem_wait(&(mem->sem_aux_variables));
         mem->procesos_p_a_pend ++; // Indicamos que el de pagos desea entrar
-        sem_post(&mem->sem_aux_variables); 
+        sem_post(&(mem->sem_aux_variables)); 
 
         #ifdef __PRINT_PROCESO
         printf("Intentando entrar en la seccion critica\n");
         #endif // DEBUG
 
 
-        sem_post(&mem->sem_sync_intentar); // Inentamos entrar en la seccion 
+        sem_post(&(mem->sem_sync_intentar)); // Inentamos entrar en la seccion 
        
 
         int valor;
-        sem_getvalue(&mem->sem_sync_intentar,&valor);
+        sem_getvalue(&(mem->sem_sync_intentar),&valor);
         printf("%i\n",valor);
 
         printf("Enviando señal a recibir\n");
-        sem_wait(&mem->sem_pagos_anulaciones); // Nos dejan entrar en la SC
+        sem_wait(&(mem->sem_pagos_anulaciones)); // Nos dejan entrar en la SC
 
 
         // SECCIÓN CRÍTICA
@@ -80,11 +82,11 @@ int main(int argc, char const *argv[])
         // FIN SECCIÓN CRÍTICA
 
 
-        sem_wait(&mem->sem_aux_variables);
+        sem_wait(&(mem->sem_aux_variables));
         mem->procesos_p_a_pend --;
-        sem_post(&mem->sem_aux_variables); 
+        sem_post(&(mem->sem_aux_variables)); 
 
-        sem_post(&mem->sem_sync_end);// Hacemos que otros procesos puedan entrar en la seccion critica
+        sem_post(&(mem->sem_sync_end));// Hacemos que otros procesos puedan entrar en la seccion critica
         // Avisamos al proceso recibir de que hemos terminado la seccion critica
     }
     return 0;
