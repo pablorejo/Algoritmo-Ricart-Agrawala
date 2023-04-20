@@ -28,7 +28,7 @@ int main(int argc, char const *argv[])
     memoria_compartida *mem;
 
 
-    key_t key = ftok("..",1);
+    key_t key = ftok(".",1);
 
 
 
@@ -46,6 +46,8 @@ int main(int argc, char const *argv[])
     while (1){
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
+
+        printf("%li\n",mem->sem_aux_variables.__align);
 
         sem_wait(&mem->sem_aux_variables);
         mem->procesos_a_r_pend ++; // Indicamos que el de pagos desea entrar

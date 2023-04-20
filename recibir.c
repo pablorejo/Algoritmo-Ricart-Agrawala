@@ -46,16 +46,16 @@ void enviar_acks();
 int main(int argc, char const *argv[])
 {
     if (argc < 3){
-        printf("Introduce el id y cuantos procesos hay\n");
-        exit(-1);
+        // printf("Introduce el id y cuantos procesos hay\n");
+        // exit(-1);
 
 
-        // mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        // n_nodos = 2; // Numero de procesos totales
-        // // Guardando ids de los procesos
-        // for (int i = 0; i < n_nodos; i++){
-        //     id_nodos[i] = i+1;
-        // }
+        mi_id = 1; // Guardamos el id que nos otorgara el usuario    
+        n_nodos = 2; // Numero de procesos totales
+        // Guardando ids de los procesos
+        for (int i = 0; i < n_nodos; i++){
+            id_nodos[i] = i+1;
+        }
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -87,6 +87,7 @@ int main(int argc, char const *argv[])
 
     // Inicializamos los semaforos de exclusion mutua
     sem_init(&mem->sem_aux_variables,0,1); // Semaforo para leer las variables de la memoria compartida
+
     sem_init(&mem->sem_mutex,0,1); // Semaforo para entrar en la seccion crítica
 
     // Semaforos de paso 
@@ -103,6 +104,9 @@ int main(int argc, char const *argv[])
     // Semaforos de sincronizacion con el proceso recivir
     sem_init(&mem->sem_sync_end,0,0);
     sem_init(&mem->sem_sync_intentar,0,0);
+    int valor;
+    sem_getvalue(&mem->sem_sync_intentar,&valor);
+    printf("%i\n",valor);
     ///////// Fin memoria compartida
 
     
@@ -144,20 +148,14 @@ void* enviar(void *args)
     
     while (1){
 
-        sem_wait(&mem->sem_sync_intentar); // Esperamos a recivir alguna peticion 
-
         #ifdef __PRINT_RECIBIR
         printf("Esperando semaforo\n");
         #endif 
 
-
-        
-
-        #ifdef __PRINT_RECIBIR
-        sleep(SLEEP);
-        #endif // DEBUG
-
-
+        sem_wait(&mem->sem_sync_intentar); // Esperamos a recivir alguna peticion 
+        int valor;
+        sem_getvalue(&mem->sem_sync_intentar,&valor);
+        printf("%i\n",valor);
 
         #ifdef __PRINT_RECIBIR
         printf("Intentando entrar a la sección crítica\n");
