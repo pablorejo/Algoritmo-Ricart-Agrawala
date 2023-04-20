@@ -91,6 +91,8 @@ int main(int argc, char const *argv[])
 
         sem_post(&(mem->sem_sync_end));// Hacemos que otros procesos puedan entrar en la seccion critica
         // Avisamos al proceso recibir de que hemos terminado la seccion critica
+
+        sleep(SLEEP*3);
     }
     return 0;
 }

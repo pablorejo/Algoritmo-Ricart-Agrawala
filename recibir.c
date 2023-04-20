@@ -40,7 +40,7 @@ void recibir();
 void* enviar(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
-void ack(int id_nodos_pend[N-1], int *nodos_pend);
+void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
 void enviar_acks();
 
 int main(int argc, char const *argv[])
@@ -154,6 +154,9 @@ void* enviar(void *args)
         printf("Esperando semaforo\n");
         #endif 
 
+        int valor;
+        sem_getvalue(&(mem->sem_sync_intentar),&valor);
+        printf("%i\n",valor);
         sem_wait(&(mem->sem_sync_intentar)); // Esperamos a recivir alguna peticion 
         // int valor;
         // sem_getvalue(&(mem->sem_sync_intentar),&valor);
@@ -189,8 +192,8 @@ void* enviar(void *args)
         {
             prioridad_max_procesos = ADMINISTRACION_RESERVAS;
         }
-    
         sem_post(&(mem->sem_aux_variables));
+
 
         for (int i = 0; i < n_nodos; i++) {
             //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
@@ -212,7 +215,6 @@ void* enviar(void *args)
                 }
                 msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el ticket al nodo 
                 
-
                 #ifdef __PRINT_RECIBIR
                 printf("Enviando el mensaje %i al nodo %li desde el nodo %li\n",msg_ticket.ticket_origen,msg_ticket.mtype,mi_id);
                 #endif // DEBUG
@@ -237,18 +239,20 @@ void* enviar(void *args)
             printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
             if (prioridad_max_procesos < prioridad_max_recivida_nodos){
                 enviar_acks();
-                max_intentos = N_MAX_INTENTOS; 
+                sem_post(&(mem->sem_sync_intentar));
+                sem_post(&sem_mutex);
                 break; // Salimos del bucle
             }else if(prioridad_max_procesos == prioridad_max_recivida_nodos){
                 if (max_intentos == 0)
                 {
                     enviar_acks();
                     max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
+                    sem_post(&sem_mutex);
+                    sem_post(&(mem->sem_sync_intentar));
                     break; // Salimos del bucle
                 }else {
                     max_intentos --;
                 }
-                
             }
             sem_post(&sem_mutex);
 
@@ -265,22 +269,22 @@ void* enviar(void *args)
             sem_post(&(mem->sem_aux_variables));
             
         }
-
+        printf("Volvemos a intentar\n");
     }
     return 0;
 }
 
 void enviar_acks(){
     if (num_pend_p_a > 0){
-        ack(id_nodos_pend_p_a, &num_pend_p_a);
+        ack(id_nodos_pend_p_a, &num_pend_p_a, 5);
     }else if (num_pend_a_r > 0)
     {
-        ack(id_nodos_pend_a_r, &num_pend_a_r);
+        ack(id_nodos_pend_a_r, &num_pend_a_r, 3);
     }
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
-void ack(int id_nodos_pend[N-1], int *nodos_pend){
+void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
     mensaje msg_tick;
     quiero = 0; 
     for (int i = 0; i < *nodos_pend; i++){
@@ -288,10 +292,11 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend){
         msg_tick.mtype = id_nodos_pend[i];
         msg_tick.id_origen = mi_id;
         msg_tick.ticket_origen = ACK;
+        msg_tick.prioridad = prioridade;
         msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
 
         #ifdef __PRINT_RECIBIR
-            printf("Enviando el ack al nodo %li desde el nodo %li\n",msg_tick.mtype,mi_id);
+            printf("Enviando el ack al nodo %li desde el nodo %li con prioridad %i\n",msg_tick.mtype,mi_id,prioridade);
         #endif // DEBUG
     }
     *nodos_pend = 0;
@@ -317,7 +322,7 @@ void recibir() {
         msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
 
         #ifdef __PRINT_RECIBIR
-        printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen);
+        printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i con prioridad %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen,msg_recibir.prioridad);
         #endif 
         
 
@@ -369,24 +374,32 @@ void recibir() {
             printf("Hemos recivido un ACK\n");
             printf("pagos y anulaciones %i\n",ack_enviados_p_a);
             printf("administracion y reservas %i\n",ack_enviados_a_r);
+            printf("prioridad del ack %i\n",msg_recibir.prioridad);
             #endif // DEBUG
 
             // Para entrar en la seccion critica
+
+
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
+                printf("pagos\n");
                 ack_enviados_p_a--;
                 if (ack_enviados_p_a == 0)
                 {
                     sem_post(&(mem->sem_pagos_anulaciones));
+                    printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
                 }
                 
                 break;
             case ADMINISTRACION_RESERVAS:
+                printf("ADMINISTRACION_RESERVAS\n");
+
                 ack_enviados_a_r--;
                 if (ack_enviados_a_r == 0)
                 {
                     sem_post(&(mem->sem_administracion_reservas));
+                    printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
                 }
                 break;
             default:
@@ -399,13 +412,13 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                num_pend_p_a ++;
                 id_nodos_pend_p_a[num_pend_p_a] = msg_recibir.id_origen;
+                num_pend_p_a ++;
                 pri = PAGOS_ANULACIONES;
                 break;
             case ADMINISTRACION_RESERVAS:
-                num_pend_a_r ++;
                 id_nodos_pend_a_r[num_pend_a_r] =  msg_recibir.id_origen;
+                num_pend_a_r ++;
                 pri = ADMINISTRACION_RESERVAS;
                 break;
             default:

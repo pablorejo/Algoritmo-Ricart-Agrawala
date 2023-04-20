@@ -51,15 +51,17 @@ int main(int argc, char const *argv[])
         mem->procesos_a_r_pend ++; // Indicamos que el de pagos desea entrar
         sem_post(&(mem->sem_aux_variables)); 
 
-
-        sem_post(&(mem->sem_sync_intentar)); // Inentamos entrar en la seccion critica
+        if (mem->tenemos_SC == 0)
+        {
+            sem_post(&(mem->sem_sync_intentar)); // Inentamos entrar en la seccion 
+        }
         sem_wait(&(mem->sem_administracion_reservas)); // Nos dejan entrar en la SC
 
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
         printf("Haciendo la SC\n");
-
+        sleep(SLEEP);
         printf("Fin de la SC\n");
         #endif 
         // FIN SECCIÓN CRÍTICA
@@ -71,7 +73,7 @@ int main(int argc, char const *argv[])
 
         sem_post(&(mem->sem_sync_end));// Hacemos que otros procesos puedan entrar en la seccion critica
         
-            
+        sleep(SLEEP*3);
     }
     return 0;
 }
