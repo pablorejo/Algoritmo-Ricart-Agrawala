@@ -51,7 +51,6 @@ typedef struct
     // Fin memória compartida
 
     // Semaforos de sincronizacion con el proceso recivir
-    sem_t sem_sync_init;
     sem_t sem_sync_end;
     sem_t sem_sync_intentar;
     // Fin de los semaforos de sincronizacion con el proceso recivir
@@ -69,7 +68,7 @@ typedef struct
 
 
 #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
-// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
+#define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 // #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 

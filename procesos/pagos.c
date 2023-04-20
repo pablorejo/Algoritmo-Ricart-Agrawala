@@ -48,13 +48,12 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
 
         sem_wait(&mem->sem_aux_variables);
-        #ifdef __PRINT_PROCESO
-        printf("Tenemos el libro\n");
-        #endif 
         mem->procesos_p_a_pend ++; // Indicamos que el de pagos desea entrar
-            
         sem_post(&mem->sem_aux_variables); 
-        sem_wait(&mem->sem_mutex); // Intentamos entrar en la SC
+
+
+        sem_post(&mem->sem_sync_intentar); // Inentamos entrar en la seccion critica
+        sem_wait(&mem->sem_pagos_anulaciones); // Nos dejan entrar en la SC
 
 
         // SECCIÓN CRÍTICA
@@ -68,15 +67,10 @@ int main(int argc, char const *argv[])
 
         sem_wait(&mem->sem_aux_variables);
         mem->procesos_p_a_pend --;
-        if (mem->procesos_p_a_pend == 0){ // Comprobamos cual es el siguiente proceso mas prioritario para que se ejecute
-            if (mem->procesos_a_r_pend > 0){
-                sem_post(&mem->sem_administracion_reservas);
-            }
-        }
-        sem_post(&mem->sem_mutex); // Hacemos que otros procesos puedan entrar en la seccion critica
         sem_post(&mem->sem_aux_variables); 
-        
-            
+
+        sem_post(&mem->sem_sync_end);// Hacemos que otros procesos puedan entrar en la seccion critica
+        // Avisamos al proceso recibir de que hemos terminado la seccion critica
     }
     return 0;
 }

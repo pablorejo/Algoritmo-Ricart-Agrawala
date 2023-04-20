@@ -5,14 +5,13 @@ int pid;
 int main(int argc, char const *argv[])
 {
     int keyNodo;
-    int quiero = 0; // Variable para saber si ya te as puesto a la cola
     if (argc < 2){
-        // #ifdef __PRINT_PROCESO
-        //     printf("Error introduce el numero de id de su nodo");
-        // #endif // DEBUG
+        #ifdef __PRINT_PROCESO
+            printf("Error introduce el numero de id de su nodo");
+        #endif // DEBUG
 
-        // exit(-1);
-        keyNodo = 1;
+        exit(-1);
+        // keyNodo = 1;
 
     }else {
         keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
@@ -49,47 +48,29 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
 
         sem_wait(&mem->sem_aux_variables);
-        #ifdef __PRINT_PROCESO
-        printf("Tenemos el libro\n");
+        mem->procesos_a_r_pend ++; // Indicamos que el de pagos desea entrar
+        sem_post(&mem->sem_aux_variables); 
+
+
+        sem_post(&mem->sem_sync_intentar); // Inentamos entrar en la seccion critica
+        sem_wait(&mem->sem_administracion_reservas); // Nos dejan entrar en la SC
+
+
+        // SECCIÓN CRÍTICA
+        #ifdef __PRINT_SC
+        printf("Haciendo la SC\n");
+
+        printf("Fin de la SC\n");
         #endif 
-        mem->procesos_a_r_pend ++; // Indicamos que el de reservas desea entrar
+        // FIN SECCIÓN CRÍTICA
 
 
+        sem_wait(&mem->sem_aux_variables);
+        mem->procesos_a_r_pend --;
+        sem_post(&mem->sem_aux_variables); 
 
-        if (mem->procesos_p_a_pend == 0){ // En caso de que no haya procesos prioritarios intentando entrar en la SC
-            
-            sem_post(&mem->sem_aux_variables); 
-            sem_post(&mem->sem_sync_intentar);
-
-            sem_wait(&mem->sem_sync_init);
-            sem_wait(&mem->sem_mutex); // Intentamos entrar en la SC
-
-
-            // SECCIÓN CRÍTICA
-            #ifdef __PRINT_SC
-            printf("Haciendo la SC\n");
-
-            printf("Fin de la SC\n");
-            #endif 
-            // FIN SECCIÓN CRÍTICA
-
-            sem_post(&mem->sem_sync_end);
-
-            sem_wait(&mem->sem_aux_variables);
-
-            sem_post(&mem->sem_mutex); 
-            sem_post(&mem->sem_aux_variables); 
-        }else{
-
-            if (quiero == 0){
-                mem->procesos_a_r_pend ++;
-                quiero = 1;
-            }
-            sem_post(&mem->sem_aux_variables); 
-            sem_wait(&mem->sem_administracion_reservas); // Esperamos a que nos dejen intentar entrar en la SC
-
-        }
-            
+        sem_post(&mem->sem_sync_end);// Hacemos que otros procesos puedan entrar en la seccion critica
+        
             
     }
     return 0;

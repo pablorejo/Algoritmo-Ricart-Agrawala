@@ -40,22 +40,22 @@ void recibir();
 void* enviar(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
-void ack(int id_nodos_pend[N-1], int nodos_pend);
+void ack(int id_nodos_pend[N-1], int *nodos_pend);
 void enviar_acks();
 
 int main(int argc, char const *argv[])
 {
     if (argc < 3){
-        // printf("Introduce el id y cuantos procesos hay\n");
-        // exit(-1);
+        printf("Introduce el id y cuantos procesos hay\n");
+        exit(-1);
 
 
-        mi_id = 1; // Guardamos el id que nos otorgara el usuario    
-        n_nodos = 2; // Numero de procesos totales
-        // Guardando ids de los procesos
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
+        // mi_id = 1; // Guardamos el id que nos otorgara el usuario    
+        // n_nodos = 2; // Numero de procesos totales
+        // // Guardando ids de los procesos
+        // for (int i = 0; i < n_nodos; i++){
+        //     id_nodos[i] = i+1;
+        // }
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
@@ -101,14 +101,13 @@ int main(int argc, char const *argv[])
 
 
     // Semaforos de sincronizacion con el proceso recivir
-    sem_init(&mem->sem_sync_init,0,0);
     sem_init(&mem->sem_sync_end,0,0);
     sem_init(&mem->sem_sync_intentar,0,0);
     ///////// Fin memoria compartida
 
     
     #ifdef __PRINT_RECIBIR
-    printf("Key 1: %i e id del buzón %i\n",key,msg_tickets_id);
+    printf("Key 1: %i e id del buzón %i\nID de la memoria compartida es %i\n",key,msg_tickets_id,msg_memoria_id);
 
     #endif // DEBUG
  
@@ -210,13 +209,16 @@ void* enviar(void *args)
         
         while (1){
             ///SECCIÓN CRÍTICA;
-            sem_wait(&mem->sem_sync_end);// Esperamos a que termine la sección crítica
+
+
             // FIN DE LA SECCIÓN CRÍTICA
+            sem_wait(&mem->sem_sync_end);// Esperamos a que termine la sección crítica
 
             
-            sem_wait(&sem_mutex);
+            sem_wait(&sem_mutex); // Para no enviar nada hasta enviar todos los acks
             if (prioridad_max_procesos < prioridad_max_recivida_nodos){
                 enviar_acks();
+                max_intentos = N_MAX_INTENTOS; 
                 break; // Salimos del bucle
             }else if(prioridad_max_procesos == prioridad_max_recivida_nodos){
                 if (max_intentos == 0)
@@ -237,18 +239,18 @@ void* enviar(void *args)
 
 void enviar_acks(){
     if (num_pend_p_a > 0){
-        ack(id_nodos_pend_p_a, num_pend_p_a);
+        ack(id_nodos_pend_p_a, &num_pend_p_a);
     }else if (num_pend_a_r > 0)
     {
-        ack(id_nodos_pend_a_r, num_pend_a_r);
+        ack(id_nodos_pend_a_r, &num_pend_a_r);
     }
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
-void ack(int id_nodos_pend[N-1], int nodos_pend){
+void ack(int id_nodos_pend[N-1], int *nodos_pend){
     mensaje msg_tick;
     quiero = 0; 
-    for (int i = 0; i < nodos_pend; i++){
+    for (int i = 0; i < *nodos_pend; i++){
         // Enviamos los mensajes que nos quedasen pendientes de enviar
         msg_tick.mtype = id_nodos_pend[i];
         msg_tick.id_origen = mi_id;
@@ -259,7 +261,7 @@ void ack(int id_nodos_pend[N-1], int nodos_pend){
             printf("Enviando el ack al nodo %li desde el nodo %li\n",msg_tick.mtype,mi_id);
         #endif // DEBUG
     }
-    nodos_pend = 0;
+    *nodos_pend = 0;
 }
 
 
@@ -314,6 +316,7 @@ void recibir() {
             // En caso de que el ticket recivido sea menor que nuestro ticket
             // Si nuestro ticket es igual al recivido pero nuestro id es mayor que el del origen
             // Si la prioridad del proceso es mayor que la nuestra
+            
 
             msg_recibir.mtype = (long) msg_recibir.id_origen;
             msg_recibir.id_origen = (int) mi_id;
@@ -329,7 +332,7 @@ void recibir() {
 
         }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
         {
-            
+            // Para entrar en la seccion critica
             switch (prioridad_max_procesos)
             {
             case PAGOS_ANULACIONES:
@@ -350,34 +353,30 @@ void recibir() {
             default:
                 break;
             }
-            sem_post(&sem_mutex);
-
-                
         }
+
         else {
             int pri = 0;
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
                 num_pend_p_a ++;
-                id_nodos_pend_p_a[num_pend_p_a] = 1;
+                id_nodos_pend_p_a[num_pend_p_a] = msg_recibir.id_origen;
                 pri = PAGOS_ANULACIONES;
                 break;
             case ADMINISTRACION_RESERVAS:
                 num_pend_a_r ++;
-                id_nodos_pend_a_r[num_pend_a_r] = 1;
+                id_nodos_pend_a_r[num_pend_a_r] =  msg_recibir.id_origen;
                 pri = ADMINISTRACION_RESERVAS;
                 break;
             default:
                 break;
             }
-            sem_post(&sem_mutex);
-
-            
 
             if (prioridad_max_recivida_nodos < pri) { prioridad_max_recivida_nodos = pri; } // Actualizamos la prioridad maxima recivida de los nodos
         }
         // Termina el semaforo de exclusion mutua
+        sem_post(&sem_mutex);
     }
 }
 
