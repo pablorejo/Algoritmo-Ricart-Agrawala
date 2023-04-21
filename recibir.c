@@ -245,7 +245,7 @@ void* enviar(void *args)
             }else if(prioridad_max_procesos == prioridad_max_recivida_nodos){
                 if (max_intentos == 0)
                 {
-                    enviar_acks();
+                    enviar_acks(); 
                     max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
                     sem_post(&sem_mutex);
                     sem_post(&(mem->sem_sync_intentar));
@@ -256,17 +256,18 @@ void* enviar(void *args)
             }
             sem_post(&sem_mutex);
 
-
             sem_wait(&(mem->sem_aux_variables));
             if (mem->procesos_p_a_pend > 0)
             {
                 sem_post(&(mem->sem_pagos_anulaciones));
+                printf("Holas");
             }else if (mem->procesos_a_r_pend > 0){
                 sem_post(&(mem->sem_administracion_reservas));
             }else {
                 break;
             }
             sem_post(&(mem->sem_aux_variables));
+
             
         }
         printf("Volvemos a intentar\n");
