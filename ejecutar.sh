@@ -1,3 +1,3 @@
 #!/bin/bash
-gcc main.c -o main -Wall
-./main $1 $2 $3
+gcc recibir.c -o recibir -Wall
+gcc proceso.c -o proceso -Wall
