@@ -5,15 +5,15 @@
 
 
 
-int mi_ticket = 0, id_nodos[N-1] = {0}, quiero = 0, max_ticket = 0, n_nodos = N-1, ctrl_c = 0;
+int  ctrl_c = 0;
 
 // Colas de pendientes de las prioridades recibidas de otros nodos
 int num_pend_p_a = 0,num_pend_a_r = 0;
 int id_nodos_pend_p_a[N-1] = {0}, id_nodos_pend_a_r[N-1] = {0};
 
+
 int msg_tickets_id; //id del buzón
 
-long mi_id;
 int procesos_pendientes = 0;
 int prioridad_max_procesos;
 int prioridad_max_recivida_nodos = 0;
@@ -45,6 +45,8 @@ void NoTenemosSC();
 
 int main(int argc, char const *argv[])
 {
+    long mi_id;
+    int n_nodos;
     if (argc < 3){
         #ifndef DEBUG
             printf("Introduce el id y cuantos nods hay\n");
@@ -64,7 +66,6 @@ int main(int argc, char const *argv[])
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
         
-        
         for (int i = 0; i < n_nodos; i++){
             id_nodos[i] = i+1;
         }
@@ -72,7 +73,7 @@ int main(int argc, char const *argv[])
   
 
     #ifdef __PRINT_RECIBIR
-    printf("Mi id es %li y el N de nodos es %i\n",mi_id,n_nodos);
+    printf("Mi id es %li y el numero de nodos es %i\n",mi_id,n_nodos);
     #endif // DEBUG
 
 
@@ -91,7 +92,6 @@ int main(int argc, char const *argv[])
 
     // Inicializamos los semaforos de exclusion mutua
     sem_init(&(mem->sem_aux_variables),1,1); // Semaforo para leer las variables de la memoria compartida
-    printf("Hola\n");
 
 
     // Semaforos de paso 
@@ -100,11 +100,12 @@ int main(int argc, char const *argv[])
 
 
     // Inicializamos las variables a 0
+    mem->mi_id = mi_id; mem->n_nodos = n_nodos;
     mem->tenemos_SC = 0;
     mem->procesos_a_r_pend = 0; mem->procesos_p_a_pend = 0;
     mem->quiero = 0;
-    mem->ack_enviados_p_a = n_nodos;
-    mem->ack_enviados_a_r = n_nodos;
+    mem->ack_enviados_p_a = mem->n_nodos;
+    mem->ack_enviados_a_r = mem->n_nodos;
 
 
     // Semaforos de sincronizacion con el proceso recivir
@@ -118,8 +119,8 @@ int main(int argc, char const *argv[])
     #endif // DEBUG
  
 
-    msg_ticket.mtype = mi_id;
-    msg_ticket.ticket_origen = mi_ticket;
+    msg_ticket.mtype = mem->mi_id;
+    msg_ticket.ticket_origen = mem->mi_ticket;
 
     // iniciamos los semáforos
     sem_init(&(mem->sem_aux_variables),1,1); // Semaforo de exclusión mutua para las variables
@@ -128,7 +129,7 @@ int main(int argc, char const *argv[])
 
 
 
-
+    NoTenemosSC();
     pthread_create(&thread_enviar, NULL, enviar, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
@@ -200,6 +201,11 @@ void* enviar(void *args)
 }
 
 void enviar_acks(){
+    if ((mem->procesos_a_r_pend + mem->ack_enviados_p_a) == 0){ // Comprobamos si ya no hay procesos que quieran entrar en seccion critica
+        mem->quiero = 0;
+    }
+
+
     if (num_pend_p_a > 0){
         ack(id_nodos_pend_p_a, &num_pend_p_a, PAGOS_ANULACIONES);
         if (num_pend_a_r > 0){
@@ -212,22 +218,22 @@ void enviar_acks(){
         ack(id_nodos_pend_a_r, &num_pend_a_r, ADMINISTRACION_RESERVAS);
         prioridad_max_recivida_nodos = 0;
     }
+    
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
     mensaje msg_tick;
-    quiero = 0; 
     for (int i = 0; i < *nodos_pend; i++){
         // Enviamos los mensajes que nos quedasen pendientes de enviar
         msg_tick.mtype = id_nodos_pend[i];
-        msg_tick.id_origen = mi_id;
+        msg_tick.id_origen = mem->mi_id;
         msg_tick.ticket_origen = ACK;
         msg_tick.prioridad = prioridade;
         msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
 
         #ifdef __PRINT_RECIBIR
-            printf("Enviando el ack al nodo %li desde el nodo %li con prioridad %i\n",msg_tick.mtype,mi_id,prioridade);
+            printf("Enviando el ack al nodo %li desde el nodo %li con prioridad %i\n",msg_tick.mtype,mem->mi_id,prioridade);
         #endif // DEBUG
     }
     *nodos_pend = 0;
@@ -250,7 +256,7 @@ void recibir() {
 
     while (1) {
         
-        msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
+        msgrcv(msg_tickets_id, &msg_recibir, sizeof(mensaje), mem->mi_id, 0); // Recivimos los mensajes que nos llegan de los nodos
 
         #ifdef __PRINT_RECIBIR
         printf("Recivimos un mensaje del nodo %i con tipo %li y el ticket es %i con prioridad %i\n",msg_recibir.id_origen,msg_recibir.mtype,msg_recibir.ticket_origen,msg_recibir.prioridad);
@@ -262,16 +268,16 @@ void recibir() {
 
         
         // asignamos el valor maximo a ticket maximo
-        if (msg_recibir.ticket_origen > max_ticket){ max_ticket = msg_recibir.ticket_origen; }
+        if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
 
 
         if  (
                     (
-                        quiero == 0 
-                        || msg_recibir.ticket_origen < mi_ticket 
+                        mem->quiero == 0 
+                        || msg_recibir.ticket_origen < mem->mi_ticket 
                         || (
-                            msg_recibir.ticket_origen == mi_ticket 
-                            && msg_recibir.id_origen < mi_id
+                            msg_recibir.ticket_origen == mem->mi_ticket 
+                            && msg_recibir.id_origen < mem->mi_id
                             )
                     ) 
                 && 
@@ -288,7 +294,7 @@ void recibir() {
             
 
             msg_recibir.mtype = (long) msg_recibir.id_origen;
-            msg_recibir.id_origen = (int) mi_id;
+            msg_recibir.id_origen = (int) mem->mi_id;
             msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
             msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
 
@@ -321,7 +327,7 @@ void recibir() {
                     tenemosSC();
                     sem_post(&(mem->sem_pagos_anulaciones));
                     printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
-                    mem->ack_enviados_p_a = n_nodos;
+                    mem->ack_enviados_p_a = mem->n_nodos;
                 }
                 
                 break;
@@ -334,7 +340,7 @@ void recibir() {
                     tenemosSC();
                     sem_post(&(mem->sem_administracion_reservas));
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
-                    mem->ack_enviados_a_r = n_nodos;
+                    mem->ack_enviados_a_r = mem->n_nodos;
                 }
                 break;
             default:
@@ -421,25 +427,3 @@ void NoTenemosSC(){
     sem_post(&(mem->sem_aux_variables));
 }
 
-
-void enviar_tickets(int pri){
-    sem_wait(&(mem->sem_aux_variables));
-    quiero = 1;
-    mi_ticket = max_ticket + 1;
-    sem_post(&(mem->sem_aux_variables));
-
-    for (int i = 0; i < n_nodos; i++) {
-        //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
-        if (id_nodos[i] != mi_id){
-            msg_ticket.mtype = id_nodos[i];
-            msg_ticket.id_origen = mi_id;
-            msg_ticket.ticket_origen = mi_ticket;
-            msg_ticket.prioridad = pri; //Establecemos el mensaje de envio como la prioridad maxima entre nuestros procesos
-            msgsnd(msg_tickets_id, &msg_ticket, sizeof(mensaje), 0); //Enviamos el ticket al nodo 
-            
-            #ifdef __PRINT_RECIBIR
-            printf("Enviando el mensaje %i al nodo %li desde el nodo %li\n",msg_ticket.ticket_origen,msg_ticket.mtype,mi_id);
-            #endif // DEBUG
-        }
-    }
-}

@@ -41,8 +41,14 @@ typedef struct
     // Memoria compartida
     int quiero;
     int  procesos_c;
-    int procesos_p_a_pend, procesos_a_r_pend;
+    int procesos_p_a_esp, procesos_a_r_esp; // Procesos esperando a pasar a la cola
+    int procesos_p_a_pend, procesos_a_r_pend; // procesos esperando en la cola para ser atendidos
+    long mi_id; // id del nodo actual
     int ack_enviados_p_a, ack_enviados_a_r;
+
+    int mi_ticket,max_ticket;
+    int n_nodos; // Esta variable nunca se cambia
+
 
     sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
     sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
@@ -86,7 +92,9 @@ typedef struct
 // definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
 #define N_MAX_INTENTOS 5
 
-void enviar_tickets();
+void enviar_tickets(int pri);
+int id_nodos[N-1];
+int msg_tickets_id;
 
 #define PROCESO_SYNC 1
 #endif
