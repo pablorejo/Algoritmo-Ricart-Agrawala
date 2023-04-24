@@ -158,9 +158,6 @@ void* enviar(void *args)
         sem_getvalue(&(mem->sem_sync_intentar),&valor);
         printf("%i\n",valor);
         sem_wait(&(mem->sem_sync_intentar)); // Esperamos a recivir alguna peticion 
-        // int valor;
-        // sem_getvalue(&(mem->sem_sync_intentar),&valor);
-        // printf("%i\n",valor);
 
         #ifdef __PRINT_RECIBIR
         printf("Intentando entrar a la sección crítica\n");
@@ -227,6 +224,7 @@ void* enviar(void *args)
             mem->tenemos_SC = 1;
             sem_post(&(mem->sem_aux_variables));
 
+
             // FIN DE LA SECCIÓN CRÍTICA
             sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
 
@@ -237,7 +235,28 @@ void* enviar(void *args)
 
             printf("prioridad_max_recivida_nodos %i\n",prioridad_max_recivida_nodos);
             printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
-            if (prioridad_max_procesos < prioridad_max_recivida_nodos){
+
+
+
+            //// 
+            sem_wait(&(mem->sem_aux_variables));
+
+            if (mem->procesos_p_a_pend > 0)
+            {
+                prioridad_max_procesos = PAGOS_ANULACIONES;
+            }else if (mem->procesos_a_r_pend > 0)
+            {
+                prioridad_max_procesos = ADMINISTRACION_RESERVAS;
+            }
+
+            if (num_pend_p_a > 0){
+                prioridad_max_recivida_nodos = PAGOS_ANULACIONES;
+            }else if (num_pend_a_r > 0)
+
+
+            if ((mem->procesos_p_a_pend == 0 && num_pend_p_a > 0 ) // En caso de que los procesos de administracion y de reservas estean pendientes de ser enviados
+                ||
+                (mem->procesos_a_r_pend > 0 && num_pend_a_r == 0)){
                 enviar_acks();
                 sem_post(&(mem->sem_sync_intentar));
                 sem_post(&sem_mutex);
@@ -256,7 +275,6 @@ void* enviar(void *args)
             }
             sem_post(&sem_mutex);
 
-            sem_wait(&(mem->sem_aux_variables));
             if (mem->procesos_p_a_pend > 0)
             {
                 sem_post(&(mem->sem_pagos_anulaciones));
