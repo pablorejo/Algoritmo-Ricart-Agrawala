@@ -27,12 +27,7 @@ int main(int argc, char const *argv[])
     
     memoria_compartida *mem;
 
-
     key_t key = ftok(".",1);
-
-
-
-
 
     int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
     int msg_memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), permisos | IPC_CREAT);
@@ -41,7 +36,6 @@ int main(int argc, char const *argv[])
     #ifdef __PRINT_PROCESO
     printf("Key: %i y id de la memoria compartida es %i\n",key+keyNodo,msg_memoria_id);
     #endif 
-
 
     while (1){
         // Quiero entrar en la sección críticia

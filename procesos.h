@@ -39,8 +39,10 @@ typedef struct
 typedef struct 
 {
     // Memoria compartida
+    int quiero;
     int  procesos_c;
     int procesos_p_a_pend, procesos_a_r_pend;
+    int ack_enviados_p_a, ack_enviados_a_r;
 
     sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
     sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
@@ -83,6 +85,8 @@ typedef struct
 
 // definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
 #define N_MAX_INTENTOS 5
+
+void enviar_tickets();
 
 #define PROCESO_SYNC 1
 #endif
