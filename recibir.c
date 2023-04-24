@@ -8,9 +8,9 @@
 int mi_ticket = 0, id_nodos[N-1] = {0}, quiero = 0, max_ticket = 0, n_nodos = N-1, ctrl_c = 0;
 
 // Colas de pendientes de las prioridades recibidas de otros nodos
-int num_pend_p_a = 0,num_pend_a_r = 0;
-int id_nodos_pend_p_a[N-1] = {0}, id_nodos_pend_a_r[N-1] = {0};
-int ack_enviados_p_a = 0 , ack_enviados_a_r = 0;
+int num_pend_p_a = 0,num_pend_a_r = 0, num_pend_c = 0;
+int id_nodos_pend_p_a[N-1] = {0}, id_nodos_pend_a_r[N-1] = {0}, id_nodos_pend_c[N-1] = {0};
+int ack_enviados_p_a = 0 , ack_enviados_a_r = 0, ack_enviados_c = 0;
 
 int msg_tickets_id; //id del buzón
 
@@ -97,6 +97,7 @@ int main(int argc, char const *argv[])
     // Semaforos de paso 
     sem_init(&(mem->sem_pagos_anulaciones),1,0);
     sem_init(&(mem->sem_administracion_reservas),1,0);
+    sem_init(&(mem->sem_consultas),N,0);
 
 
     // Inicializamos las variables a 0
@@ -210,6 +211,8 @@ void* enviar(void *args)
                 case PAGOS_ANULACIONES:
                     ack_enviados_p_a++;
                     break;
+                case CONSULTAS:
+                    ack_enviados_c++;
                 default:
                     break;
                 }
@@ -403,6 +406,16 @@ void recibir() {
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
                 }
                 break;
+            case CONSULTAS:
+                printf("CONSULTAS\n");
+
+                ack_enviados_c--;
+                if (ack_enviados_c == 0)
+                {
+                    sem_post(&(mem->sem_consultas));
+                    printf("Dejamos que el proceso de consultas pueda entrar\n");
+                }
+                break;
             default:
                 break;
             }
@@ -422,6 +435,10 @@ void recibir() {
                 num_pend_a_r ++;
                 pri = ADMINISTRACION_RESERVAS;
                 break;
+            case CONSULTAS:
+                id_nodos_pend_c[num_pend_c] =  msg_recibir.id_origen;
+                num_pend_c ++;
+                pri = CONSULTAS;
             default:
                 break;
             }
