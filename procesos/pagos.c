@@ -55,7 +55,7 @@ int main(int argc, char const *argv[])
     {
         for (int i = 0; i < mem->n_nodos; i++)
         {
-            id_nodos[i] = i;
+            id_nodos[i] = i + 1;
         }
     }else{
         printf("Tiene que haber nodos ejecutandose\n");
@@ -81,13 +81,16 @@ int main(int argc, char const *argv[])
         printf("Intentando entrar en la seccion critica\n");
         #endif // DEBUG
 
-        if (mem->tenemos_SC == 0)
+        // printf("Quiero = %i\nTenemos SC = %i\n",mem->quiero,mem->tenemos_SC);
+        if (mem->tenemos_SC == 0 && mem->procesos_p_a_pend == 1)
         {
+            sem_post(&(mem->sem_aux_variables)); 
             enviar_tickets(PAGOS_ANULACIONES);
             printf("Hemos enviado los tickets\n");
+        }else if (mem->tenemos_SC == 1){
+            sem_post(&(mem->sem_sync_end));
+            sem_post(&(mem->sem_aux_variables)); 
         }
-        sem_post(&(mem->sem_aux_variables)); 
-        
 
 
         sem_wait(&(mem->sem_pagos_anulaciones)); // Nos dejan entrar en la SC
@@ -116,14 +119,24 @@ int main(int argc, char const *argv[])
 
 
 void enviar_tickets(int pri){
+
+    printf("Enviando mensajes\n");
+
     mensaje msg_tick;
+
+
     sem_wait(&(mem->sem_aux_variables));
     mem->quiero = 1;
     mem->mi_ticket = mem->max_ticket + 1;
     sem_post(&(mem->sem_aux_variables));
 
+
+    printf("N_nodos = %i\n",mem->n_nodos);
+
+
     for (int i = 0; i < mem->n_nodos; i++) {
         //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
+        printf("Hola\n");
         if (id_nodos[i] != mem->mi_id){
             msg_tick.mtype = id_nodos[i];
             msg_tick.id_origen = mem->mi_id;

@@ -91,7 +91,6 @@ int main(int argc, char const *argv[])
     ///////// Inicializamos la memoria compartida
 
     // Inicializamos los semaforos de exclusion mutua
-    sem_init(&(mem->sem_aux_variables),1,1); // Semaforo para leer las variables de la memoria compartida
 
 
     // Semaforos de paso 
@@ -100,12 +99,12 @@ int main(int argc, char const *argv[])
 
 
     // Inicializamos las variables a 0
-    mem->mi_id = mi_id; mem->n_nodos = n_nodos;
+    mem->mi_id = mi_id; mem->n_nodos = n_nodos; 
     mem->tenemos_SC = 0;
     mem->procesos_a_r_pend = 0; mem->procesos_p_a_pend = 0;
     mem->quiero = 0;
-    mem->ack_enviados_p_a = mem->n_nodos;
-    mem->ack_enviados_a_r = mem->n_nodos;
+    mem->ack_enviados_p_a = n_nodos;
+    mem->ack_enviados_a_r = n_nodos;
 
 
     // Semaforos de sincronizacion con el proceso recivir
@@ -150,13 +149,6 @@ void* enviar(void *args)
 
         sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
 
-        printf("Comprobando prioridades\n");
-        
-        sem_wait(&(mem->sem_aux_variables)); // Para no enviar nada hasta enviar todos los acks
-
-
-        printf("prioridad_max_recivida_nodos %i\n",prioridad_max_recivida_nodos);
-        printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
 
 
 
@@ -172,29 +164,46 @@ void* enviar(void *args)
             prioridad_max_procesos = 0;
         }
 
-        if (mem->procesos_p_a_pend > prioridad_max_recivida_nodos) {// En caso de que los procesos de administracion y de reservas estean pendientes de ser enviados y nosotros no tengamos
+
+        printf("Comprobando prioridades\n");
+        printf("prioridad_max_recivida_nodos %i\n",prioridad_max_recivida_nodos);
+        printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
+        printf("Procesos de pagos y anulaciones %i\n", mem->procesos_p_a_pend);
+        printf("Procesos de administracion y reservas %i\n", mem->procesos_a_r_pend);
+
+        if (prioridad_max_procesos < prioridad_max_recivida_nodos) {// En caso de que los procesos de administracion y de reservas estean pendientes de ser enviados y nosotros no tengamos
+            printf("Hola\n");
             NoTenemosSC();
             enviar_acks();
             sem_post(&(mem->sem_aux_variables));
             max_intentos = N_MAX_INTENTOS;
  
         }else if(prioridad_max_procesos == prioridad_max_recivida_nodos){ // En caso de que tengamos ambos procesos prioritarios
+            printf("Hola\n");
             if (max_intentos == 0)
             {
                 enviar_acks(); 
-                max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
                 sem_post(&(mem->sem_aux_variables));
+                max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
             }else {
                 max_intentos --;
+                sem_post(&(mem->sem_aux_variables)); 
             }
         }else{
+            printf("Hola\n");
             if (mem->procesos_p_a_pend > 0){ // En caso de que no tengamos procesos prioritarios
                 sem_post(&(mem->sem_pagos_anulaciones));
+                prioridad_max_procesos = PAGOS_ANULACIONES;
+                printf("Dejamos pasar a uno de pagos o de anulaciones\n");
             }else if (mem->procesos_a_r_pend > 0){
+                prioridad_max_procesos = ADMINISTRACION_RESERVAS;
                 sem_post(&(mem->sem_administracion_reservas));
+                printf("Dejamos pasar a uno de administracion o de reservas\n");
+            }else{
+                printf("No hay procesos en espera\n");
             }
+            sem_post(&(mem->sem_aux_variables));
         }
-        sem_post(&(mem->sem_aux_variables));
     }
     
     return 0;
@@ -322,7 +331,7 @@ void recibir() {
             case PAGOS_ANULACIONES:
                 printf("pagos\n");
                 mem->ack_enviados_p_a--;
-                if (mem->ack_enviados_p_a == 0)
+                if (mem->ack_enviados_p_a == 1)
                 {
                     tenemosSC();
                     sem_post(&(mem->sem_pagos_anulaciones));
@@ -335,7 +344,7 @@ void recibir() {
                 printf("ADMINISTRACION_RESERVAS\n");
 
                 mem->ack_enviados_a_r--;
-                if (mem->ack_enviados_a_r == 0)
+                if (mem->ack_enviados_a_r == 1)
                 {
                     tenemosSC();
                     sem_post(&(mem->sem_administracion_reservas));
@@ -416,14 +425,10 @@ void catch_ctrl_c(int sig)
 }
 
 void tenemosSC(){
-    sem_wait(&(mem->sem_aux_variables));
     mem->tenemos_SC = 1;
-    sem_post(&(mem->sem_aux_variables));
 }
 
 void NoTenemosSC(){
-    sem_wait(&(mem->sem_aux_variables));
     mem->tenemos_SC = 0;
-    sem_post(&(mem->sem_aux_variables));
 }
 

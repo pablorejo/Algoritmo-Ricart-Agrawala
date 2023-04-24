@@ -41,7 +41,7 @@ typedef struct
     // Memoria compartida
     int quiero;
     int  procesos_c;
-    int procesos_p_a_esp, procesos_a_r_esp; // Procesos esperando a pasar a la cola
+    // int procesos_p_a_esp, procesos_a_r_esp; // Procesos esperando a pasar a la cola
     int procesos_p_a_pend, procesos_a_r_pend; // procesos esperando en la cola para ser atendidos
     long mi_id; // id del nodo actual
     int ack_enviados_p_a, ack_enviados_a_r;
