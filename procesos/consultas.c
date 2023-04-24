@@ -48,14 +48,15 @@ int main(int argc, char const *argv[])
     while(1){
         if(procesos_c == 0){
             //SOY EL PRIMERO -> TENGO QUE AVISAR AL RESTO DE PROCESOS DE CONSULTAS
-            sem_wait(&(mem->procesos_c_pend));
+            sem_wait(&(mem->procesos_c_pend)); /// Esto no tiene sentido ya que no es un semaforo
+            sem_wait(&(mem->sem_aux_variables));
             procesos_c ++;
             mem->procesos_c_pend ++; // Indicamos que el de consultas desea entrar
             
             if (mem->tenemos_SC == 0){
                 sem_post(&(mem->sem_sync_intentar)); // Innetamos entrar en la seccion 
             }
-            sem_post(&(mem->procesos_c_pend));
+            sem_post(&(mem->sem_aux_variables));
 
             //Nos dejan entrar en la SC
             sem_wait(&(mem->sem_consultas));
