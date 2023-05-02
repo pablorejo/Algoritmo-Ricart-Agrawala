@@ -12,11 +12,10 @@ int num_pend_p_a = 0,num_pend_a_r = 0;
 int id_nodos_pend_p_a[N-1] = {0}, id_nodos_pend_a_r[N-1] = {0};
 
 
+
+
 int msg_tickets_id; //id del buzón
 
-int procesos_pendientes = 0;
-int prioridad_max_procesos;
-int prioridad_max_recivida_nodos = 0;
 
 
 

@@ -18,13 +18,6 @@
 
 #define ID_NODO_CONTROLADOR 1
 
-typedef struct
-{
-    long mtype; 
-}semaforo;
-
-
-
 
 typedef struct 
 {
@@ -50,12 +43,18 @@ typedef struct
     int n_nodos; // Esta variable nunca se cambia
 
 
-    sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
-    sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
-    sem_t sem_administracion_reservas, sem_pagos_anulaciones; // Semaforos de paso 
+    // sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
+    // sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
+    sem_t sem_paso_pagos_anulaciones, sem_paso_administracion_reservas, sem_paso_consultas; // Semaforos de paso 
+    int pend_pagos_anulaciones, pend_administracion_reservas, pend_consultas;
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
 
+    //// Para los nodos
+    int nodos_pend_pagos_anulaciones, nodos_pend_administracion_reservas, nodos_pend_consultas;
+    int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
     
+
+
     // Fin memória compartida
 
     // Semaforos de sincronizacion con el proceso recivir
