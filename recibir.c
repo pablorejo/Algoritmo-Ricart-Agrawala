@@ -35,8 +35,7 @@ void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
 void enviar_acks();
-void tenemosSC();
-void NoTenemosSC();
+void enviar_ticket(int pri);
 
 int main(int argc, char const *argv[])
 {
@@ -136,8 +135,7 @@ int main(int argc, char const *argv[])
 
 
 
-
-    NoTenemosSC();
+    mem->tenemos_SC = 0;
     pthread_create(&thread_enviar, NULL, siguiente, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
@@ -160,6 +158,9 @@ void *siguiente(void *args){
             if (mem->nodos_pend_pagos_anulaciones > 0 && mem->intentos == 0){
                 mem->tenemos_SC = 0;
                 enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+                mem->ack_pend_pagos_anulaciones = mem->n_nodos -1;
+                enviar_ticket(PAGOS_ANULACIONES);
+                
             }else {
                 mem->intentos --;
                 sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
@@ -170,7 +171,9 @@ void *siguiente(void *args){
         }else if (mem->pend_administracion_reservas > 0){
             if (mem->nodos_pend_administracion_reservas > 0 && mem->intentos == 0){
                 mem->tenemos_SC = 0;
+                mem->ack_pend_administracion_reservas = mem->n_nodos -1;
                 enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+                enviar_ticket(ADMINISTRACION_RESERVAS);
             }else {
                 mem->intentos --;
                 sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
@@ -179,12 +182,15 @@ void *siguiente(void *args){
             mem->tenemos_SC = 0;
             enviar_acks();
         }else{
+
+
             if (mem->pend_consultas > 0){
                 sem_post(&(mem->sem_paso_consultas));
             }
             if (mem->nodos_pend_consultas>0){
                 enviar_acks();
             }
+
         }
     }
 }
@@ -229,7 +235,19 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
 }
 
 
-
+void enviar_ticket(int pri){
+    mensaje msg;
+    msg.id_origen = mem->mi_id;
+    msg.prioridad = pri;
+    msg.ticket_origen = mem->mi_ticket;
+    for (int i = 0; i < mem->n_nodos; i++)
+    {
+        if (mem->mi_id != id_nodos[i]){
+            msg.mtype = id_nodos[i];
+            msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+        }
+    }
+}
 
 
 
@@ -267,8 +285,10 @@ void recibir() {
             prioridad_max_procesos = PAGOS_ANULACIONES;
         }else if (mem->pend_administracion_reservas > 0){
             prioridad_max_procesos = ADMINISTRACION_RESERVAS;
-        }else {
+        }else if (mem->pend_consultas > 0){
             prioridad_max_procesos = CONSULTAS;
+        }else {
+            prioridad_max_procesos = 0;
         }
         
 
@@ -336,7 +356,7 @@ void recibir() {
                 mem->ack_pend_pagos_anulaciones--;
                 if (mem->ack_pend_pagos_anulaciones == 0)
                 {
-                    tenemosSC();
+                    mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_pagos_anulaciones));
                     printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
                 }
@@ -348,7 +368,7 @@ void recibir() {
                 mem->ack_pend_administracion_reservas--;
                 if (mem->ack_pend_administracion_reservas == 1)
                 {
-                    tenemosSC();
+                    mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_administracion_reservas));
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
                 }
@@ -362,16 +382,16 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                id_nodos_pend_pagos_anulaciones[mem->pend_pagos_anulaciones] = msg_recibir.id_origen;
-                mem->pend_pagos_anulaciones ++;
+                id_nodos_pend_pagos_anulaciones[mem->nodos_pend_pagos_anulaciones] = msg_recibir.id_origen;
+                mem->nodos_pend_pagos_anulaciones ++;
                 break;
             case ADMINISTRACION_RESERVAS:
-                id_nodos_pend_administracion_reservas[mem->pend_pagos_anulaciones] =  msg_recibir.id_origen;
-                mem->pend_pagos_anulaciones ++;
+                id_nodos_pend_administracion_reservas[mem->nodos_pend_administracion_reservas] =  msg_recibir.id_origen;
+                mem->nodos_pend_administracion_reservas ++;
                 break;
             case CONSULTAS:
-                id_nodos_pend_consultas[mem->pend_consultas] = msg_recibir.id_origen;
-                mem->pend_consultas++;
+                id_nodos_pend_consultas[mem->nodos_pend_consultas] = msg_recibir.id_origen;
+                mem->nodos_pend_consultas++;
             default:
                 break;
             }
@@ -423,11 +443,5 @@ void catch_ctrl_c(int sig)
     sem_post(&sem_ctrl_c);
 }
 
-void tenemosSC(){
-    mem->tenemos_SC = 1;
-}
 
-void NoTenemosSC(){
-    mem->tenemos_SC = 0;
-}
 

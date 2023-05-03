@@ -68,10 +68,7 @@ typedef struct
 
 }memoria_compartida;
 
-int memoria_id;
-memoria_compartida *mem;
 
-int msg_tickets_id; //id del buzón
 
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
@@ -94,11 +91,13 @@ int msg_tickets_id; //id del buzón
 
 
 // definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
-#define N_MAX_INTENTOS 5
+#define N_MAX_INTENTOS 3
 
 void enviar_tickets(int pri);
 int id_nodos[N-1];
 int msg_tickets_id;
+int memoria_id;
+memoria_compartida *mem;
 
 #define PROCESO_SYNC 1
 #endif

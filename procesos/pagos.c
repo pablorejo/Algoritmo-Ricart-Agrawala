@@ -113,7 +113,7 @@ int main(int argc, char const *argv[])
 
         sem_wait(&(mem->sem_paso_pagos_anulaciones)); // Nos dejan entrar en la SC
 
-
+        
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
         printf("Haciendo la SC\n");
