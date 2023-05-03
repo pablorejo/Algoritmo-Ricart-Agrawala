@@ -29,11 +29,10 @@ sem_t sem_ctrl_c; // semaforo de paso para realizar el control c
 pthread_t thread_enviar; 
 pthread_t thread_ctrl_c;
 
-int memoria_id;
-memoria_compartida *mem;
 
-void siguiente();
-void* enviar(void *args);
+
+void recibir();
+void* siguiente(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
@@ -78,14 +77,20 @@ int main(int argc, char const *argv[])
 
     key_t key = ftok(".",1);
 
-    msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
+    msg_tickets_id = msgget(key, 0660 | IPC_CREAT); // Creamos el buzón
 
 
     // Memoria compartida
     
 
-    memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
+    memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0660 | IPC_CREAT);
+    if (memoria_id == -1){
+        perror("Error al intentar crear la memoria compartida");
+    }
     mem = shmat(memoria_id, NULL, 0);
+
+
+    
     ///////// Inicializamos la memoria compartida
     mem->quiero = 0;
     mem->mi_id = mi_id; mem->n_nodos = n_nodos;
@@ -135,46 +140,53 @@ int main(int argc, char const *argv[])
 
 
     NoTenemosSC();
-    pthread_create(&thread_enviar, NULL, enviar, NULL);
+    pthread_create(&thread_enviar, NULL, siguiente, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
     signal(SIGINT, &catch_ctrl_c);
 
-    siguiente();
+    recibir();
     return 0;
 }
 
 
-void siguiente(){
-    sem_wait(&(mem->sem_sync_siguiente));
-    if (mem->pend_pagos_anulaciones > 0){
-        if (mem->nodos_pend_pagos_anulaciones > 0 && mem->intentos == 0){
+void *siguiente(void *args){
+
+    while (1)
+    {
+
+    
+        sem_wait(&(mem->sem_sync_siguiente));
+
+        if (mem->pend_pagos_anulaciones > 0){
+            if (mem->nodos_pend_pagos_anulaciones > 0 && mem->intentos == 0){
+                mem->tenemos_SC = 0;
+                enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+            }else {
+                mem->intentos --;
+                sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
+            }
+        }else if (mem->nodos_pend_pagos_anulaciones > 0){
             mem->tenemos_SC = 0;
-            enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
-        }else {
-            mem->intentos --;
-            sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-        }
-    }else if (mem->nodos_pend_pagos_anulaciones > 0){
-        mem->tenemos_SC = 0;
-        enviar_acks(); // No dejamos pasar a mas procesos;
-    }else if (mem->pend_administracion_reservas > 0){
-        if (mem->nodos_pend_administracion_reservas > 0 && mem->intentos == 0){
+            enviar_acks(); // No dejamos pasar a mas procesos;
+        }else if (mem->pend_administracion_reservas > 0){
+            if (mem->nodos_pend_administracion_reservas > 0 && mem->intentos == 0){
+                mem->tenemos_SC = 0;
+                enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+            }else {
+                mem->intentos --;
+                sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
+            }
+        }else if (mem->nodos_pend_administracion_reservas > 0){
             mem->tenemos_SC = 0;
-            enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
-        }else {
-            mem->intentos --;
-            sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
-        }
-    }else if (mem->nodos_pend_administracion_reservas > 0){
-        mem->tenemos_SC = 0;
-        enviar_acks();
-    }else{
-        if (mem->pend_consultas > 0){
-            sem_post(&(mem->sem_paso_consultas));
-        }
-        if (mem->nodos_pend_consultas>0){
             enviar_acks();
+        }else{
+            if (mem->pend_consultas > 0){
+                sem_post(&(mem->sem_paso_consultas));
+            }
+            if (mem->nodos_pend_consultas>0){
+                enviar_acks();
+            }
         }
     }
 }

@@ -1,8 +1,8 @@
 #include "../procesos.h"
+#include <errno.h>
 
 int pid;
 
-memoria_compartida *mem;
 
 
 void enviar_tickets(int pri); 
@@ -43,12 +43,21 @@ int main(int argc, char const *argv[])
 
 
 
+    // key_t key = ftok("../procesos_bin",1);
     key_t key = ftok(".",1);
-    int msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
     
 
-    int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
-    int memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), permisos | IPC_CREAT);
+    memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), 0660 | IPC_CREAT);
+    
+    #ifdef __PRINT_PROCESO
+    printf("Key: %i y id de la memoria compartida es %i\n",key,memoria_id);
+    #endif 
+
+    if (memoria_id == -1){
+        perror("Error al intentar crear la memoria compartida");
+    }
+
+    // memoria_id = 196609;
     mem = shmat(memoria_id, NULL, 0);
 
 
@@ -65,9 +74,6 @@ int main(int argc, char const *argv[])
 
 
 
-    #ifdef __PRINT_PROCESO
-    printf("Key: %i y id de la memoria compartida es %i\n",key,memoria_id);
-    #endif 
 
 
     while (1){
