@@ -44,11 +44,12 @@ int main(int argc, char const *argv[])
 
 
     key_t key = ftok(".",1);
-    msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
+    int msg_tickets_id = msgget(key,0660 | IPC_CREAT); // Creamos el buzón
+    
 
     int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
-    int msg_memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), permisos | IPC_CREAT);
-    mem = shmat(msg_memoria_id, NULL, 0);
+    int memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), permisos | IPC_CREAT);
+    mem = shmat(memoria_id, NULL, 0);
 
 
     if (mem->n_nodos > 0)
@@ -74,24 +75,33 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
 
-        sem_wait(&(mem->sem_aux_variables));
-        mem->procesos_p_a_pend ++; // Indicamos que el de pagos desea entrar
+        int prioridad_actual;
+
+        
+        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES)
+        {
+            mem->quiero = 1;
+            mem->prioridad_max_enviada = PAGOS_ANULACIONES;
+
+            
+            // Enviamos los tickets para poder entrar en la sección crítica
+            mensaje msg_tick;
+            msg_tick.id_origen = mem->mi_id;
+            msg_tick.ticket_origen = ACK;
+            msg_tick.prioridad = PAGOS_ANULACIONES;
+
+            for (int i = 0; i < mem->n_nodos; i++)
+            {
+                msg_tick.mtype = id_nodos_pend[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
+                msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+            }
+        }
+        
+        mem->pend_pagos_anulaciones ++;
 
         #ifdef __PRINT_PROCESO
         printf("Intentando entrar en la seccion critica\n");
-        #endif // DEBUG
-
-        // printf("Quiero = %i\nTenemos SC = %i\n",mem->quiero,mem->tenemos_SC);
-        if (mem->tenemos_SC == 0 && mem->procesos_p_a_pend == 1)
-        {
-            sem_post(&(mem->sem_aux_variables)); 
-            enviar_tickets(PAGOS_ANULACIONES);
-            printf("Hemos enviado los tickets\n");
-        }else if (mem->tenemos_SC == 1){
-            sem_post(&(mem->sem_sync_end));
-            sem_post(&(mem->sem_aux_variables)); 
-        }
-
+        #endif 
 
         sem_wait(&(mem->sem_pagos_anulaciones)); // Nos dejan entrar en la SC
 
@@ -101,18 +111,17 @@ int main(int argc, char const *argv[])
         printf("Haciendo la SC\n");
         sleep(SLEEP);
         printf("Fin de la SC\n");
+        sleep(SLEEP);
         #endif 
         // FIN SECCIÓN CRÍTICA
 
+        mem->pend_pagos_anulaciones --;
 
-        sem_wait(&(mem->sem_aux_variables));
-        mem->procesos_p_a_pend --;
-        sem_post(&(mem->sem_aux_variables)); 
+        
+        sem_post(&(mem->sem_sync_siguiente)); // Hacemos que el hilo siguiente se encargue de decidir cual es el siguiente proceso que puede entrar en la seccion critica
 
-        sem_post(&(mem->sem_sync_end));// Hacemos que otros procesos puedan entrar en la seccion critica
-        // Avisamos al proceso recibir de que hemos terminado la seccion critica
 
-        // sleep(SLEEP);s
+        
     }
     return 0;
 }

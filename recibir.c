@@ -9,7 +9,7 @@ int  ctrl_c = 0;
 
 // Colas de pendientes de las prioridades recibidas de otros nodos
 int num_pend_p_a = 0,num_pend_a_r = 0;
-int id_nodos_pend_p_a[N-1] = {0}, id_nodos_pend_a_r[N-1] = {0};
+int id_nodos_pend_pagos_anulaciones[N-1] = {0}, id_nodos_pend_administracion_reservas[N-1] = {0}, id_nodos_pend_consultas;
 
 
 
@@ -26,14 +26,14 @@ mensaje msg_ticket;
 semaforo msg_semaforo;
 
 
-sem_t sem_ctrl_c;
-pthread_t thread_enviar;
+sem_t sem_ctrl_c; // semaforo de paso para realizar el control c
+pthread_t thread_enviar; 
 pthread_t thread_ctrl_c;
 
 int memoria_id;
 memoria_compartida *mem;
 
-void recibir();
+void siguiente();
 void* enviar(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
@@ -88,28 +88,34 @@ int main(int argc, char const *argv[])
     memoria_id = shmget(key+mi_id, sizeof(memoria_compartida), 0666 | IPC_CREAT);
     mem = shmat(memoria_id, NULL, 0);
     ///////// Inicializamos la memoria compartida
+    mem->quiero = 0;
+    mem->mi_id = mi_id; mem->n_nodos = n_nodos;
+    mem->max_ticket = 0; mem->mi_ticket = 1;
 
+    //Intra nodo
+    mem->pend_pagos_anulaciones = 0; mem->pend_administracion_reservas = 0; mem->pend_consultas = 0;
+    mem->prioridad_max_enviada = 0;
+
+
+    //Entre nodos
+    mem->nodos_pend_administracion_reservas = 0; mem->nodos_pend_pagos_anulaciones = 0; mem->nodos_pend_consultas = 0;
+    mem->ack_pend_administracion_reservas = 0; mem->ack_pend_pagos_anulaciones = 0; mem->ack_pend_consultas = 0;
+    mem->intentos = N_MAX_INTENTOS;
     // Inicializamos los semaforos de exclusion mutua
 
 
     // Semaforos de paso 
-    sem_init(&(mem->sem_pagos_anulaciones),1,0);
-    sem_init(&(mem->sem_administracion_reservas),1,0);
+    sem_init(&(mem->sem_paso_pagos_anulaciones),1,0);
+    sem_init(&(mem->sem_paso_administracion_reservas),1,0);
+    sem_init(&(mem->sem_paso_consultas),1,0);
+    // sem_init(&(mem->sem_sync_enviar_ack),1,0);
+    sem_init(&(mem->sem_sync_siguiente),1,0);
 
 
-    // Inicializamos las variables a 0
-    mem->mi_id = mi_id; mem->n_nodos = n_nodos; 
-    mem->tenemos_SC = 0;
-    mem->procesos_a_r_pend = 0; mem->procesos_p_a_pend = 0;
-    mem->quiero = 0;
-    mem->ack_enviados_p_a = n_nodos;
-    mem->ack_enviados_a_r = n_nodos;
 
-
-    // Semaforos de sincronizacion con el proceso recivir
-    sem_init(&(mem->sem_sync_end),1,0);
-    ///////// Fin memoria compartida
-
+    // Proteccion de memoria compartida
+    sem_init(&(mem->sem_pro_ack,1,1));
+    sem_init(&(mem->sem_pro_pend,1,1));
     
     #ifdef __PRINT_RECIBIR
     printf("Key 1: %i e id del buzón %i\nID de la memoria compartida es %i\n",key,msg_tickets_id,memoria_id);
@@ -133,100 +139,64 @@ int main(int argc, char const *argv[])
     // Controlar el ctrl+c
     signal(SIGINT, &catch_ctrl_c);
 
-    recibir();
+    siguiente();
     return 0;
 }
 
-// En esta funcion se comprueba a quien se le debe dar la siguiente sección crítica
-void* enviar(void *args) 
-{
 
-    #ifdef __PRINT_RECIBIR
-    printf("Funcion enviar ok\n");
-    #endif 
-    while (1){
-
-        sem_wait(&(mem->sem_sync_end));// Esperamos a que termine la sección crítica
-
-
-
-
-        sem_wait(&(mem->sem_aux_variables));
-
-        if (mem->procesos_p_a_pend > 0) // Actualizamos a prioridade maxima dos procesos
-        { 
-            prioridad_max_procesos = PAGOS_ANULACIONES;
-        }else if (mem->procesos_a_r_pend > 0)
-        {
-            prioridad_max_procesos = ADMINISTRACION_RESERVAS;
+void siguiente(){
+    sem_wait(&(mem->sem_sync_siguiente));
+    if (mem->pend_pagos_anulaciones > 0){
+        if (mem->nodos_pend_pagos_anulaciones > 0 && mem->intentos = 0){
+            mem->tenemos_SC = 0;
+            enviar_ack(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
         }else {
-            prioridad_max_procesos = 0;
+            mem->intentos --;
+            sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
         }
-
-
-        printf("Comprobando prioridades\n");
-        printf("prioridad_max_recivida_nodos %i\n",prioridad_max_recivida_nodos);
-        printf("prioridad_max_procesos %i\n",prioridad_max_procesos);
-        printf("Procesos de pagos y anulaciones %i\n", mem->procesos_p_a_pend);
-        printf("Procesos de administracion y reservas %i\n", mem->procesos_a_r_pend);
-
-        if (prioridad_max_procesos < prioridad_max_recivida_nodos) {// En caso de que los procesos de administracion y de reservas estean pendientes de ser enviados y nosotros no tengamos
-            printf("Hola\n");
-            NoTenemosSC();
-            enviar_acks();
-            sem_post(&(mem->sem_aux_variables));
-            max_intentos = N_MAX_INTENTOS;
- 
-        }else if(prioridad_max_procesos == prioridad_max_recivida_nodos){ // En caso de que tengamos ambos procesos prioritarios
-            printf("Hola\n");
-            if (max_intentos == 0)
-            {
-                enviar_acks(); 
-                sem_post(&(mem->sem_aux_variables));
-                max_intentos = N_MAX_INTENTOS; // Reiniciamos el contador
-            }else {
-                max_intentos --;
-                sem_post(&(mem->sem_aux_variables)); 
-            }
-        }else{
-            printf("Hola\n");
-            if (mem->procesos_p_a_pend > 0){ // En caso de que no tengamos procesos prioritarios
-                sem_post(&(mem->sem_pagos_anulaciones));
-                prioridad_max_procesos = PAGOS_ANULACIONES;
-                printf("Dejamos pasar a uno de pagos o de anulaciones\n");
-            }else if (mem->procesos_a_r_pend > 0){
-                prioridad_max_procesos = ADMINISTRACION_RESERVAS;
-                sem_post(&(mem->sem_administracion_reservas));
-                printf("Dejamos pasar a uno de administracion o de reservas\n");
-            }else{
-                printf("No hay procesos en espera\n");
-            }
-            sem_post(&(mem->sem_aux_variables));
+    }else if (mem->nodos_pend_pagos_anulaciones > 0){
+        mem->tenemos_SC = 0;
+        enviar_ack(); // No dejamos pasar a mas procesos;
+    }else if (mem->pend_administracion_reservas > 0){
+        if (mem->nodos_pend_administracion_reservas > 0 && mem->intentos = 0){
+            mem->tenemos_SC = 0;
+            enviar_ack(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+        }else {
+            mem->intentos --;
+            sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
+        }
+    }else if (mem->nodos_pend_administracion_reservas > 0){
+        mem->tenemos_SC = 0;
+        enviar_ack();
+    }else{
+        if (mem->pend_consultas > 0){
+            sem_post(&(mem->sem_paso_consultas));
+        }
+        if (mem->nodos_pend_consultas>0){
+            enviar_ack();
         }
     }
-    
-    return 0;
 }
 
 void enviar_acks(){
-    if ((mem->procesos_a_r_pend + mem->ack_enviados_p_a) == 0){ // Comprobamos si ya no hay procesos que quieran entrar en seccion critica
-        mem->quiero = 0;
-    }
+    // Semaforo de paso
+    // sem_wait(&(mem->sem_sync_enviar_ack));
 
 
-    if (num_pend_p_a > 0){
-        ack(id_nodos_pend_p_a, &num_pend_p_a, PAGOS_ANULACIONES);
-        if (num_pend_a_r > 0){
-            prioridad_max_recivida_nodos = ADMINISTRACION_RESERVAS; // Actualizamos la prioridad maxima recivida
-        }else{
-            prioridad_max_recivida_nodos = 0;
+    // Si quiero = 0 enviamos ack a todos los procesos
+    if (mem->quiero == 0){
+        ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
+        ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+        ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+    }else{
+        if (mem->nodos_pend_pagos_anulaciones > 0){
+            ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
+        }else if(mem->nodos_pend_administracion_reservas > 0){
+            ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+        }else if(mem->nodos_pend_consultas > 0){
+            ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
         }
-    }else if (num_pend_a_r > 0)
-    {
-        ack(id_nodos_pend_a_r, &num_pend_a_r, ADMINISTRACION_RESERVAS);
-        prioridad_max_recivida_nodos = 0;
     }
-    
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
@@ -279,9 +249,21 @@ void recibir() {
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
 
 
+
+        // Comprobamos la prioridad maxima de los procesos en este momento
+        int prioridad_max_procesos;
+        if (mem->pend_pagos_anulaciones > 0){
+            prioridad_max_procesos = PAGOS_ANULACIONES;
+        }else if (mem->pend_administracion_reservas > 0){
+            prioridad_max_procesos = ADMINISTRACION_RESERVAS;
+        }else {
+            prioridad_max_procesos = CONSULTAS;
+        }
+        
+
         if  (
                     (
-                        mem->quiero == 0 
+                           mem->quiero == 0 
                         || msg_recibir.ticket_origen < mem->mi_ticket 
                         || (
                             msg_recibir.ticket_origen == mem->mi_ticket 
@@ -290,9 +272,8 @@ void recibir() {
                     ) 
                 && 
                     (msg_recibir.ticket_origen != ACK)
-                && (msg_recibir.prioridad > prioridad_max_procesos )
-                    
-                    
+                && (msg_recibir.prioridad >= prioridad_max_procesos )
+                && (mem->tenemos_SC == 0) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes
             )
             {
             // En caso de que no queramos enviar un ticket quiero = 0
@@ -301,6 +282,16 @@ void recibir() {
             // Si la prioridad del proceso es mayor que la nuestra
             
 
+            // Comprobamos si la prioridad es mayor a la que tienen nuestro procesos en ese caso tendremos que volver a mandar las peticiones unicamente al nodo que nos mandó la prioridad
+            if (msg_recibir.prioridad > prioridad_max_procesos){
+                mensaje msg;
+                mem->ack_pend_administracion_reservas ++; //Aumentamos el numero de acks pendientes de ser atendidos
+                msg.mtype = msg_recibir.id_origen; // Lo enviamos a la id origen del mensaje recivido
+                msg.id_origen = mem->mi_id; // Lo mandamos desde nuestra id
+                msg.prioridad = prioridad_max_procesos; // Lo mandamos con la prioridad maxima actual de nuestro nodo
+            }
+
+            // Enviamos el ack de confirmacion
             msg_recibir.mtype = (long) msg_recibir.id_origen;
             msg_recibir.id_origen = (int) mem->mi_id;
             msg_recibir.ticket_origen = ACK; // Si el ticket origen es 0 es que es un ack
@@ -312,7 +303,7 @@ void recibir() {
             #endif // DEBUG
 
 
-
+        // Aqui comprobaremos los acks
         }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
         {
             #ifdef __PRINT_RECIBIR
@@ -329,26 +320,24 @@ void recibir() {
             {
             case PAGOS_ANULACIONES:
                 printf("pagos\n");
-                mem->ack_enviados_p_a--;
-                if (mem->ack_enviados_p_a == 1)
+                mem->ack_pend_pagos_anulaciones--;
+                if (mem->ack_pend_pagos_anulaciones == 0)
                 {
                     tenemosSC();
-                    sem_post(&(mem->sem_pagos_anulaciones));
+                    sem_post(&(mem->sem_paso_pagos_anulaciones));
                     printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
-                    mem->ack_enviados_p_a = mem->n_nodos;
                 }
                 
                 break;
             case ADMINISTRACION_RESERVAS:
                 printf("ADMINISTRACION_RESERVAS\n");
 
-                mem->ack_enviados_a_r--;
-                if (mem->ack_enviados_a_r == 1)
+                mem->ack_pend_administracion_reservas--;
+                if (mem->ack_pend_administracion_reservas == 1)
                 {
                     tenemosSC();
-                    sem_post(&(mem->sem_administracion_reservas));
+                    sem_post(&(mem->sem_paso_administracion_reservas));
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
-                    mem->ack_enviados_a_r = mem->n_nodos;
                 }
                 break;
             default:
@@ -361,20 +350,22 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                id_nodos_pend_p_a[num_pend_p_a] = msg_recibir.id_origen;
-                num_pend_p_a ++;
+                id_nodos_pend_pagos_anulaciones[mem->pend_pagos_anulaciones] = msg_recibir.id_origen;
+                mem->pend_pagos_anulaciones ++;
                 pri = PAGOS_ANULACIONES;
                 break;
             case ADMINISTRACION_RESERVAS:
-                id_nodos_pend_a_r[num_pend_a_r] =  msg_recibir.id_origen;
-                num_pend_a_r ++;
+                id_nodos_pend_administracion_reservas[mem->pend_pagos_anulaciones] =  msg_recibir.id_origen;
+                mem->pend_pagos_anulaciones ++;
                 pri = ADMINISTRACION_RESERVAS;
                 break;
+            case CONSULTAS:
+                id_nodos_pend_consultas[mem->pend_consultas] = msg_recibir.id_origen;
+                mem->pend_consultas++;
+                pri = CONSULTAS;
             default:
                 break;
             }
-
-            if (prioridad_max_recivida_nodos < pri) { prioridad_max_recivida_nodos = pri; } // Actualizamos la prioridad maxima recivida de los nodos
         }
         // Termina el semaforo de exclusion mutua
         sem_post(&(mem->sem_aux_variables));
