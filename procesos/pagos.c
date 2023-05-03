@@ -66,7 +66,7 @@ int main(int argc, char const *argv[])
 
 
     #ifdef __PRINT_PROCESO
-    printf("Key: %i y id de la memoria compartida es %i\n",key,msg_memoria_id);
+    printf("Key: %i y id de la memoria compartida es %i\n",key,memoria_id);
     #endif 
 
 
@@ -75,7 +75,6 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
 
-        int prioridad_actual;
 
         
         if (mem->prioridad_max_enviada < PAGOS_ANULACIONES)
@@ -92,7 +91,7 @@ int main(int argc, char const *argv[])
 
             for (int i = 0; i < mem->n_nodos; i++)
             {
-                msg_tick.mtype = id_nodos_pend[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
+                msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
                 msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
             }
         }
@@ -103,7 +102,7 @@ int main(int argc, char const *argv[])
         printf("Intentando entrar en la seccion critica\n");
         #endif 
 
-        sem_wait(&(mem->sem_pagos_anulaciones)); // Nos dejan entrar en la SC
+        sem_wait(&(mem->sem_paso_pagos_anulaciones)); // Nos dejan entrar en la SC
 
 
         // SECCIÓN CRÍTICA
@@ -127,36 +126,5 @@ int main(int argc, char const *argv[])
 }
 
 
-void enviar_tickets(int pri){
 
-    printf("Enviando mensajes\n");
-
-    mensaje msg_tick;
-
-
-    sem_wait(&(mem->sem_aux_variables));
-    mem->quiero = 1;
-    mem->mi_ticket = mem->max_ticket + 1;
-    sem_post(&(mem->sem_aux_variables));
-
-
-    printf("N_nodos = %i\n",mem->n_nodos);
-
-
-    for (int i = 0; i < mem->n_nodos; i++) {
-        //Enviamos un mensaje a todos los nodos diciendo que queremos entrar en la sección crítica
-        printf("Hola\n");
-        if (id_nodos[i] != mem->mi_id){
-            msg_tick.mtype = id_nodos[i];
-            msg_tick.id_origen = mem->mi_id;
-            msg_tick.ticket_origen = mem->mi_ticket;
-            msg_tick.prioridad = pri; //Establecemos el mensaje de envio como la prioridad maxima entre nuestros procesos
-            msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el ticket al nodo 
-            
-            #ifdef __PRINT_RECIBIR
-            printf("Enviando el mensaje %i al nodo %li desde el nodo %li\n",msg_tick.ticket_origen,msg_tick.mtype,mem->mi_id);
-            #endif // DEBUG
-        }
-    }
-}
 

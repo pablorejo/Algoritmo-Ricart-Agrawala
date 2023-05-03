@@ -64,7 +64,7 @@ typedef struct
     // Semaforos de proteccion de memoria compartida
     sem_t sem_pro_pend, sem_pro_ack; // Semaforos inicializados a 1
 
-
+    sem_t sem_aux_variables;
 
 }memoria_compartida;
 
