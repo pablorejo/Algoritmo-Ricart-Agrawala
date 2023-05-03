@@ -1,3 +1,8 @@
+- [Algoritmo-Ricart-Agrawala](#algoritmo-ricart-agrawala)
+  - [Herramientas](#herramientas)
+  - [ERRORES](#errores)
+    - [MEMORIA COMPARTIDA](#memoria-compartida)
+    - [BUZONES](#buzones)
 # Algoritmo-Ricart-Agrawala
 
 En esta práctica hablaremos sobre el algoritmo `Ricart-Agrawala` para proteger secciones seciones críticas de procesos que están distribuidos
@@ -37,3 +42,9 @@ ipcrm -q ID_BUZON
 Al igual que antes el id del buzon lo imprime el programa recibir
 
 
+<!-- # Funcionamiento
+## Recibir
+El proceso recivir recibirá el mensaje
+```c
+
+``` -->

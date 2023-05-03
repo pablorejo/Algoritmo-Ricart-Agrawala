@@ -31,22 +31,23 @@ typedef struct
 // Estrucutura de la memoria compartida
 typedef struct 
 {
+    // No cambian una vez establecidas
+    long mi_id; int n_nodos;
+
+
+
     // Memoria compartida
     int quiero;
-    int  procesos_c;
     // int procesos_p_a_esp, procesos_a_r_esp; // Procesos esperando a pasar a la cola
-    int procesos_p_a_pend, procesos_a_r_pend; // procesos esperando en la cola para ser atendidos
-    long mi_id; // id del nodo actual
-    int ack_enviados_p_a, ack_enviados_a_r;
 
     int mi_ticket,max_ticket;
-    int n_nodos; // Esta variable nunca se cambia
-
 
     // sem_t sem_aux_variables; // Semáforo axiliar para chequear la memoria compartida
     // sem_t sem_mutex; // Semaforo de exclusion mutua con todos los procesos menos los de consultas entre siç
     sem_t sem_paso_pagos_anulaciones, sem_paso_administracion_reservas, sem_paso_consultas; // Semaforos de paso 
     int pend_pagos_anulaciones, pend_administracion_reservas, pend_consultas;
+    int prioridad_max_enviada;
+    int intentos;
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
 
     //// Para los nodos
@@ -54,13 +55,14 @@ typedef struct
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
     
 
-
+    // sem_t sem_sync_enviar_ack;
+    sem_t sem_sync_siguiente; 
     // Fin memória compartida
 
-    // Semaforos de sincronizacion con el proceso recivir
-    sem_t sem_sync_end;
-    sem_t sem_sync_intentar;
-    // Fin de los semaforos de sincronizacion con el proceso recivir
+
+
+    // Semaforos de proteccion de memoria compartida
+    sem_t sem_pro_pend, sem_pro_ack; // Semaforos inicializados a 1
 
 
 
