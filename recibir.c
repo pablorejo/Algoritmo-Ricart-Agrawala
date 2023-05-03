@@ -30,12 +30,10 @@ pthread_t thread_ctrl_c;
 
 
 void recibir();
-void* siguiente(void *args);
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
 void enviar_acks();
-void enviar_ticket(int pri);
 
 int main(int argc, char const *argv[])
 {
@@ -109,8 +107,8 @@ int main(int argc, char const *argv[])
     sem_init(&(mem->sem_paso_pagos_anulaciones),1,0);
     sem_init(&(mem->sem_paso_administracion_reservas),1,0);
     sem_init(&(mem->sem_paso_consultas),1,0);
-    // sem_init(&(mem->sem_sync_enviar_ack),1,0);
-    sem_init(&(mem->sem_sync_siguiente),1,0);
+    sem_init(&(mem->sem_sync_enviar_ack),1,0);
+    // sem_init(&(mem->sem_sync_siguiente),1,0);
 
 
 
@@ -136,7 +134,7 @@ int main(int argc, char const *argv[])
 
 
     mem->tenemos_SC = 0;
-    pthread_create(&thread_enviar, NULL, siguiente, NULL);
+    // pthread_create(&thread_enviar, NULL, siguiente, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
     signal(SIGINT, &catch_ctrl_c);
@@ -146,72 +144,29 @@ int main(int argc, char const *argv[])
 }
 
 
-void *siguiente(void *args){
 
-    while (1)
-    {
-
-    
-        sem_wait(&(mem->sem_sync_siguiente));
-
-        if (mem->pend_pagos_anulaciones > 0){
-            if (mem->nodos_pend_pagos_anulaciones > 0 && mem->intentos == 0){
-                mem->tenemos_SC = 0;
-                enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
-                mem->ack_pend_pagos_anulaciones = mem->n_nodos -1;
-                enviar_ticket(PAGOS_ANULACIONES);
-                
-            }else {
-                mem->intentos --;
-                sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-            }
-        }else if (mem->nodos_pend_pagos_anulaciones > 0){
-            mem->tenemos_SC = 0;
-            enviar_acks(); // No dejamos pasar a mas procesos;
-        }else if (mem->pend_administracion_reservas > 0){
-            if (mem->nodos_pend_administracion_reservas > 0 && mem->intentos == 0){
-                mem->tenemos_SC = 0;
-                mem->ack_pend_administracion_reservas = mem->n_nodos -1;
-                enviar_acks(); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
-                enviar_ticket(ADMINISTRACION_RESERVAS);
-            }else {
-                mem->intentos --;
-                sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
-            }
-        }else if (mem->nodos_pend_administracion_reservas > 0){
-            mem->tenemos_SC = 0;
-            enviar_acks();
-        }else{
-
-
-            if (mem->pend_consultas > 0){
-                sem_post(&(mem->sem_paso_consultas));
-            }
-            if (mem->nodos_pend_consultas>0){
-                enviar_acks();
-            }
-
-        }
-    }
-}
 
 void enviar_acks(){
     // Semaforo de paso
-    // sem_wait(&(mem->sem_sync_enviar_ack));
+
+    while (1)
+    {
+    
+        sem_wait(&(mem->sem_sync_enviar_ack));
 
 
-    // Si quiero = 0 enviamos ack a todos los procesos
-    if (mem->quiero == 0){
-        ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
-        ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
-        ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-    }else{
-        if (mem->nodos_pend_pagos_anulaciones > 0){
+        if (mem->quiero == 0){
             ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
-        }else if(mem->nodos_pend_administracion_reservas > 0){
             ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
-        }else if(mem->nodos_pend_consultas > 0){
             ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+        }else{
+            if (mem->nodos_pend_pagos_anulaciones > 0){
+                ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
+            }else if(mem->nodos_pend_administracion_reservas > 0){
+                ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+            }else if(mem->nodos_pend_consultas > 0){
+                ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+            }
         }
     }
 }
@@ -235,19 +190,7 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
 }
 
 
-void enviar_ticket(int pri){
-    mensaje msg;
-    msg.id_origen = mem->mi_id;
-    msg.prioridad = pri;
-    msg.ticket_origen = mem->mi_ticket;
-    for (int i = 0; i < mem->n_nodos; i++)
-    {
-        if (mem->mi_id != id_nodos[i]){
-            msg.mtype = id_nodos[i];
-            msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
-        }
-    }
-}
+
 
 
 
@@ -352,7 +295,7 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                printf("pagos\n");
+                printf("PAGOS_ANULACIONES\n");
                 mem->ack_pend_pagos_anulaciones--;
                 if (mem->ack_pend_pagos_anulaciones == 0)
                 {
@@ -366,7 +309,7 @@ void recibir() {
                 printf("ADMINISTRACION_RESERVAS\n");
 
                 mem->ack_pend_administracion_reservas--;
-                if (mem->ack_pend_administracion_reservas == 1)
+                if (mem->ack_pend_administracion_reservas == 0)
                 {
                     mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_administracion_reservas));
@@ -379,6 +322,9 @@ void recibir() {
         }
 
         else {
+            #ifdef __PRINT_RECIBIR
+                printf("Recivimos proceso pendiente con prioridad %i\n",msg_recibir.prioridad);
+            #endif // DEBUG
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:

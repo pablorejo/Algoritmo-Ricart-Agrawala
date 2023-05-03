@@ -55,14 +55,14 @@ typedef struct
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
     
 
-    // sem_t sem_sync_enviar_ack;
-    sem_t sem_sync_siguiente; 
+    sem_t sem_sync_enviar_ack;
+    // sem_t sem_sync_siguiente; 
     // Fin memória compartida
 
 
 
     // Semaforos de proteccion de memoria compartida
-    sem_t sem_pro_pend, sem_pro_ack; // Semaforos inicializados a 1
+    sem_t sem_pro_pend, sem_pro_ack, sem_pro_tenemos_sc; // Semaforos inicializados a 1
 
     sem_t sem_aux_variables;
 
