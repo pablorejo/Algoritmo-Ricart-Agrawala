@@ -71,6 +71,9 @@ typedef struct
 int memoria_id;
 memoria_compartida *mem;
 
+int msg_tickets_id; //id del buzón
+
+
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
 #define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
 

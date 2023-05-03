@@ -14,8 +14,6 @@ int id_nodos_pend_pagos_anulaciones[N-1] = {0}, id_nodos_pend_administracion_res
 
 
 
-int msg_tickets_id; //id del buzón
-
 
 
 

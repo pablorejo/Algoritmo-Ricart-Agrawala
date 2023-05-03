@@ -46,7 +46,7 @@ int main(int argc, char const *argv[])
     // key_t key = ftok("../procesos_bin",1);
     key_t key = ftok(".",1);
     
-
+    msg_tickets_id = msgget(key, 0660 | IPC_CREAT); // Creamos el buzón
     memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), 0660 | IPC_CREAT);
     
     #ifdef __PRINT_PROCESO
@@ -82,6 +82,7 @@ int main(int argc, char const *argv[])
         
 
 
+        mem->pend_pagos_anulaciones ++;
         
         if (mem->prioridad_max_enviada < PAGOS_ANULACIONES)
         {
@@ -92,17 +93,19 @@ int main(int argc, char const *argv[])
             // Enviamos los tickets para poder entrar en la sección crítica
             mensaje msg_tick;
             msg_tick.id_origen = mem->mi_id;
-            msg_tick.ticket_origen = ACK;
+            msg_tick.ticket_origen = mem->mi_ticket;
             msg_tick.prioridad = PAGOS_ANULACIONES;
 
             for (int i = 0; i < mem->n_nodos; i++)
             {
-                msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
-                msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+                if (id_nodos[i] != mem->mi_id){
+                    mem->ack_pend_pagos_anulaciones ++;
+                    msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
+                    msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+                }
             }
         }
         
-        mem->pend_pagos_anulaciones ++;
 
         #ifdef __PRINT_PROCESO
         printf("Intentando entrar en la seccion critica\n");
