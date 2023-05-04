@@ -72,7 +72,7 @@ typedef struct
 
 
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
-#define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
+#define SLEEP 3 // Tiempo de espera para poder ver bien lo que hace
 
 
 
@@ -95,6 +95,7 @@ typedef struct
 
 void enviar_tickets(int pri);
 void siguiente();
+void seccionCritica();
 
 int id_nodos[N-1];
 int msg_tickets_id;
@@ -115,7 +116,7 @@ void enviar_tickets(int pri){
     msg_tick.prioridad = pri;
 
 
-    printf("\n\n\nEnviando tickets\n\n\n");    
+    printf("\nEnviando tickets\n");    
     for (int i = 0; i < mem->n_nodos; i++)
     {
         if (id_nodos[i] != mem->mi_id){
@@ -146,7 +147,7 @@ void enviar_tickets(int pri){
 void siguiente(){
     sem_wait(&(mem->sem_aux_variables));
     #ifdef __PRINT_RECIBIR
-        printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
+        // printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
         printf("Siguiente\n");
     #endif // DEBUG
 
@@ -212,6 +213,14 @@ void siguiente(){
     sem_post(&(mem->sem_aux_variables));
 
     printf("Fin siguiente 2\n\n");
+}
+
+void seccionCritica(){
+    sleep(SLEEP);
+    printf("Haciendo la SC\n");
+    sleep(SLEEP);
+    printf("Fin de la SC\n");
+    sleep(SLEEP);
 }
 
 #endif

@@ -261,7 +261,9 @@ void recibir() {
                 msg.id_origen = mem->mi_id; // Lo mandamos desde nuestra id
                 msg.prioridad = mem->prioridad_max_enviada; // Lo mandamos con la prioridad maxima actual de nuestro nodo
                 msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos ack al nodo origen
-                printf("Hemos enviado una peticion de ack");
+                #ifdef __PRINT_RECIBIR 
+                    printf("Hemos enviado una peticion de ack");
+                #endif // DEBUG
             }
 
             // Enviamos el ack de confirmacion
@@ -271,8 +273,7 @@ void recibir() {
             msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
 
             #ifdef __PRINT_RECIBIR
-            printf("Enviamos un mensaje de tipo ACK al nodo origen %li\n",msg_recibir.mtype);
-            
+                printf("Enviamos un mensaje de tipo ACK al nodo origen %li\n",msg_recibir.mtype);
             #endif // DEBUG
 
 
@@ -280,11 +281,11 @@ void recibir() {
         }else if (msg_recibir.ticket_origen == ACK) // Comprovamos que el ticket no es un ack
         {
             #ifdef __PRINT_RECIBIR
-            printf("Hemos recivido un ACK\n");
-            printf("pagos y anulaciones %i\n",mem->ack_pend_pagos_anulaciones);
-            printf("administracion y reservas %i\n",mem->ack_pend_administracion_reservas);
-            printf("Consultas %i\n",mem->ack_pend_consultas);
-            printf("prioridad del ack %i\n",msg_recibir.prioridad);
+                printf("Hemos recivido un ACK\n");
+                printf("pagos y anulaciones %i\n",mem->ack_pend_pagos_anulaciones);
+                printf("administracion y reservas %i\n",mem->ack_pend_administracion_reservas);
+                printf("Consultas %i\n",mem->ack_pend_consultas);
+                printf("prioridad del ack %i\n",msg_recibir.prioridad);
             #endif // DEBUG
 
             // Para entrar en la seccion critica

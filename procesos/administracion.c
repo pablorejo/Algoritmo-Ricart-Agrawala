@@ -3,9 +3,6 @@
 
 int pid;
 
-
-
-
 int main(int argc, char const *argv[])
 {
     int keyNodo;
@@ -31,9 +28,6 @@ int main(int argc, char const *argv[])
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
     
-
-
-
 
 
     // key_t key = ftok("../procesos_bin",1);
@@ -68,25 +62,25 @@ int main(int argc, char const *argv[])
 
 
 
-
+    ///////// Aqui empieza el programa ////////////////
     while (1){
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
         
-
+        #ifdef __PRINT_PROCESO
+            printf("Proceso de pagos en ejecucion\n");
+        #endif 
 
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas ++;
         
-
-        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS)
-        {
+        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS){
             mem->quiero = 1;
             mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
             sem_post(&(mem->sem_aux_variables));
             enviar_tickets(ADMINISTRACION_RESERVAS);
             #ifdef __PRINT_PROCESO
-                printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
+                printf("La prioridad enviada mas baja es menor que administracion o reservas\n");
             #endif 
             
         }else{
@@ -95,28 +89,27 @@ int main(int argc, char const *argv[])
         
 
         #ifdef __PRINT_PROCESO
-        printf("Intentando entrar en la seccion critica\n");
+            printf("Intentando entrar en la seccion critica\n");
         #endif 
 
         sem_wait(&(mem->sem_paso_administracion_reservas)); // Nos dejan entrar en la SC
 
-
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-        printf("Haciendo la SC\n");
-        sleep(SLEEP);
-        printf("Fin de la SC\n");
-        sleep(SLEEP);
+            seccionCritica();
         #endif 
         // FIN SECCIÓN CRÍTICA
 
-        
+
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas --;
         sem_post(&(mem->sem_aux_variables));
-        
 
         siguiente();
+
+        #ifdef __PRINT_PROCESO
+            printf("Fin pagos\n\n");
+        #endif
         
     }
     return 0;

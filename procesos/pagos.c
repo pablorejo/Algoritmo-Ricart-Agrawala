@@ -77,13 +77,13 @@ int main(int argc, char const *argv[])
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_pagos_anulaciones ++;
         
-        if (mem->pend_pagos_anulaciones == 1){
+        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES){
             mem->quiero = 1;
             mem->prioridad_max_enviada = PAGOS_ANULACIONES;
             sem_post(&(mem->sem_aux_variables));
             enviar_tickets(PAGOS_ANULACIONES);
             #ifdef __PRINT_PROCESO
-                printf("\n\nLa prioridad enviada mas baja es menor que pagos o anulaciones\n\n");
+                printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
             #endif 
             
         }else{
@@ -99,10 +99,7 @@ int main(int argc, char const *argv[])
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-            printf("Haciendo la SC\n");
-            sleep(SLEEP);
-            printf("Fin de la SC\n");
-            sleep(SLEEP);
+            seccionCritica();
         #endif 
         // FIN SECCIÓN CRÍTICA
 
