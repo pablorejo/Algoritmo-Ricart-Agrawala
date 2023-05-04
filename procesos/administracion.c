@@ -30,7 +30,8 @@ int main(int argc, char const *argv[])
     #endif 
     
 
-
+    signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
+    
     // key_t key = ftok("../procesos_bin",1);
     key_t key = ftok(CARPETA,1);
     

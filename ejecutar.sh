@@ -23,3 +23,6 @@ mv *.c  ../procesos
 mv *.h  ../procesos
 
 cd ..
+
+./del_mem.sh
+./del_procesos.sh
