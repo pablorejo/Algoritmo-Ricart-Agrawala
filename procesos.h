@@ -81,7 +81,7 @@ typedef struct
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
-
+#define CARPETA "/home/pio"
 
 // Prioridades de los procesos
 // Cuanto mayor sea el numero mas prioridad tendra
@@ -103,32 +103,17 @@ memoria_compartida *mem;
 
 
 
-void reset_prioriti(){
-    if (mem->pend_pagos_anulaciones > 0){
-        mem->prioridad_max_enviada = PAGOS_ANULACIONES;
-        enviar_tickets(PAGOS_ANULACIONES);
-    }else if (mem->pend_administracion_reservas > 0){
-        mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
-        enviar_tickets(ADMINISTRACION_RESERVAS);
-    }else if (mem->pend_consultas){
-        mem->prioridad_max_enviada = CONSULTAS;
-        enviar_tickets(CONSULTAS);
-    }else {
-        mem->prioridad_max_enviada = 0;
-    }
-}
 void enviar_tickets(int pri){
 
     // Enviamos los tickets para poder entrar en la sección crítica
     mensaje msg_tick;
     msg_tick.id_origen = mem->mi_id;
+    mem->mi_ticket = mem->max_ticket + 1;
     msg_tick.ticket_origen = mem->mi_ticket;
     msg_tick.prioridad = pri;
 
 
-    #ifdef __PRINT_PROCESO
-    printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
-    #endif 
+    printf("\n\n\nEnviando tickets\n\n\n");    
     for (int i = 0; i < mem->n_nodos; i++)
     {
         if (id_nodos[i] != mem->mi_id){
@@ -147,6 +132,7 @@ void enviar_tickets(int pri){
             default:
                 break;
             }
+            mem->prioridad_max_enviada = pri;
             sem_post(&(mem->sem_aux_variables));
             msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
             msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
@@ -157,9 +143,9 @@ void enviar_tickets(int pri){
 
 void siguiente(){
     sem_wait(&(mem->sem_aux_variables));
-
     #ifdef __PRINT_RECIBIR
     // printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
+        printf("Siguiente\n");
     #endif // DEBUG
 
 
@@ -168,28 +154,23 @@ void siguiente(){
             if (mem->intentos == 0){
                 mem->tenemos_SC = 0;
                 mem->intentos = N_MAX_INTENTOS;
-                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
                 mem->prioridad_max_enviada = PAGOS_ANULACIONES;
-                sem_post(&(mem->sem_aux_variables));
+                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
                 enviar_tickets(PAGOS_ANULACIONES);
-                // printf("pagos\n");
+                printf("Enviando tickets");
                 
             }else {
                 mem->intentos --;
-                sem_post(&(mem->sem_aux_variables));
                 sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-                // printf("pagos\n");
             }
         }else {
             mem->intentos = N_MAX_INTENTOS;
-            sem_post(&(mem->sem_aux_variables));
             sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-            // printf("pagos\n");
+            printf("Pagos\n");
         }
     }else if (mem->nodos_pend_pagos_anulaciones > 0){
-        // printf("pagos\n");
+        mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
-        sem_post(&(mem->sem_aux_variables));
         sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos;
     }else if (mem->pend_administracion_reservas > 0){
 
@@ -197,34 +178,36 @@ void siguiente(){
             if (mem->intentos == 0){
                 mem->tenemos_SC = 0;
                 mem->intentos = N_MAX_INTENTOS;
-                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
                 mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
-                sem_post(&(mem->sem_aux_variables));
+                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
                 enviar_tickets(ADMINISTRACION_RESERVAS);
             }else {
                 mem->intentos --;
-                sem_post(&(mem->sem_aux_variables));
                 sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
             }
         }else {
             mem->intentos = N_MAX_INTENTOS;
-            sem_post(&(mem->sem_aux_variables));
             sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
         }
     }else if (mem->nodos_pend_administracion_reservas > 0){
+        printf("nodos_pend_administracion_reservas > 0\n");
+        mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
-        sem_post(&(mem->sem_aux_variables));
         sem_post(&mem->sem_sync_enviar_ack);
     }else{
         mem->prioridad_max_enviada = CONSULTAS;
         if (mem->pend_consultas > 0){
             sem_post(&(mem->sem_paso_consultas));
+        }else{
+            mem->quiero = 0;
         }
         if (mem->nodos_pend_consultas>0){
             sem_post(&mem->sem_sync_enviar_ack);
         }
-        sem_post(&(mem->sem_aux_variables));
     }
-   
+
+    sem_post(&(mem->sem_aux_variables));
+
+    printf("Fin siguiente\n\n");
 }
 #endif

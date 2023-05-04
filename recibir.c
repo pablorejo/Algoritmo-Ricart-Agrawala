@@ -19,8 +19,6 @@ int id_nodos_pend_pagos_anulaciones[N-1] = {0}, id_nodos_pend_administracion_res
 
 int max_intentos = N_MAX_INTENTOS;
 
-// Buzones
-mensaje msg_ticket;
 
 
 sem_t sem_ctrl_c; // semaforo de paso para realizar el control c
@@ -33,7 +31,7 @@ void recibir();
 void* fun_ctrl_c(void *args);
 void catch_ctrl_c(int sig);
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
-void enviar_acks();
+void *enviar_acks(void *args);
 
 int main(int argc, char const *argv[])
 {
@@ -70,7 +68,7 @@ int main(int argc, char const *argv[])
 
 
 
-    key_t key = ftok(".",1);
+    key_t key = ftok(CARPETA,1);
 
     msg_tickets_id = msgget(key, 0660 | IPC_CREAT); // Creamos el buzón
 
@@ -124,17 +122,14 @@ int main(int argc, char const *argv[])
     #endif // DEBUG
  
 
-    msg_ticket.mtype = mem->mi_id;
-    msg_ticket.ticket_origen = mem->mi_ticket;
 
     // iniciamos los semáforos
-    sem_init(&(mem->sem_aux_variables),1,1); // Semaforo de exclusión mutua para las variables
     sem_init(&sem_ctrl_c,1,0); // Semáforo de paso por si se desea cancelar la ejecucmax_ticket
 
 
 
     mem->tenemos_SC = 0;
-    // pthread_create(&thread_enviar, NULL, siguiente, NULL);
+    pthread_create(&thread_enviar, NULL, enviar_acks, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
     signal(SIGINT, &catch_ctrl_c);
@@ -146,12 +141,12 @@ int main(int argc, char const *argv[])
 
 
 
-void enviar_acks(){
+void *enviar_acks(void *args){
     // Semaforo de paso
 
     while (1)
     {
-    
+
         sem_wait(&(mem->sem_sync_enviar_ack));
 
         sem_wait(&(mem->sem_aux_variables));
@@ -159,17 +154,20 @@ void enviar_acks(){
             ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
             ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
             ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+            printf("Quiero = 0");
         }else{
             if (mem->nodos_pend_pagos_anulaciones > 0){
                 ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
+                printf("Enviando ack a los nodos de tipo pagos o anulaciones\n");
             }else if(mem->nodos_pend_administracion_reservas > 0){
                 ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+                printf("Enviando ack a los nodos de tipo administracion o reservas\n");
             }else if(mem->nodos_pend_consultas > 0){
                 ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+                printf("Enviando ack a los nodos de tipo consultas\n");
             }
         }
 
-        printf("enviando ack");
         sem_post(&(mem->sem_aux_variables));
     }
 }
@@ -252,7 +250,7 @@ void recibir() {
             
 
             // Comprobamos si la prioridad es mayor a la que tienen nuestro procesos en ese caso tendremos que volver a mandar las peticiones unicamente al nodo que nos mandó la prioridad
-            if (msg_recibir.prioridad > mem->prioridad_max_enviada){
+            if (msg_recibir.prioridad > mem->prioridad_max_enviada && mem->quiero == 1){
                 mensaje msg;
                 if (msg_recibir.prioridad == ADMINISTRACION_RESERVAS){
                     mem->ack_pend_administracion_reservas ++; //Aumentamos el numero de acks pendientes de ser atendidos
@@ -263,6 +261,7 @@ void recibir() {
                 msg.id_origen = mem->mi_id; // Lo mandamos desde nuestra id
                 msg.prioridad = mem->prioridad_max_enviada; // Lo mandamos con la prioridad maxima actual de nuestro nodo
                 msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos ack al nodo origen
+                printf("Hemos enviado una peticion de ack");
             }
 
             // Enviamos el ack de confirmacion
@@ -272,7 +271,7 @@ void recibir() {
             msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
 
             #ifdef __PRINT_RECIBIR
-            printf("Enviamos un mensaje al nodo origen %li\n",msg_recibir.mtype);
+            printf("Enviamos un mensaje de tipo ACK al nodo origen %li\n",msg_recibir.mtype);
             
             #endif // DEBUG
 

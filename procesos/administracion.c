@@ -4,8 +4,8 @@
 int pid;
 
 
+void siguiente();
 
-void enviar_tickets(int pri); 
 
 int main(int argc, char const *argv[])
 {
@@ -25,14 +25,8 @@ int main(int argc, char const *argv[])
     }
 
     
-    
-    
     printf("Hola\n");
     pid = getpid();
-
-    
-
-
 
     #ifdef __PRINT_PROCESO
     printf("Soy el proceso con pid %i\n",pid);
@@ -43,8 +37,8 @@ int main(int argc, char const *argv[])
 
 
 
-    key_t key = ftok("../procesos_bin",1);
-    // key_t key = ftok(".",1);
+    // key_t key = ftok("../procesos_bin",1);
+    key_t key = ftok(CARPETA,1);
     
     msg_tickets_id = msgget(key, 0660 | IPC_CREAT); // Creamos el buzón
     memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), 0660 | IPC_CREAT);
@@ -81,34 +75,24 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
 
+
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas ++;
         
+
         if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS)
         {
             mem->quiero = 1;
             mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
-
+            sem_post(&(mem->sem_aux_variables));
+            enviar_tickets(ADMINISTRACION_RESERVAS);
             #ifdef __PRINT_PROCESO
-                printf("Enviando tickets\n");
+                printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
             #endif 
             
-            // Enviamos los tickets para poder entrar en la sección crítica
-            mensaje msg_tick;
-            msg_tick.id_origen = mem->mi_id;
-            msg_tick.ticket_origen = mem->mi_ticket;
-            msg_tick.prioridad = ADMINISTRACION_RESERVAS;
-
-            for (int i = 0; i < mem->n_nodos; i++)
-            {
-                if (id_nodos[i] != mem->mi_id){
-                    mem->ack_pend_administracion_reservas ++;
-                    msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
-                    msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
-                }
-            }
+        }else{
+            sem_post(&(mem->sem_aux_variables));
         }
-        sem_post(&(mem->sem_aux_variables));
         
 
         #ifdef __PRINT_PROCESO
@@ -117,7 +101,7 @@ int main(int argc, char const *argv[])
 
         sem_wait(&(mem->sem_paso_administracion_reservas)); // Nos dejan entrar en la SC
 
-        
+
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
         printf("Haciendo la SC\n");
@@ -127,20 +111,14 @@ int main(int argc, char const *argv[])
         #endif 
         // FIN SECCIÓN CRÍTICA
 
-
-
+        
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas --;
         sem_post(&(mem->sem_aux_variables));
         
-        sem_post(&(mem->sem_sync_siguiente)); // Hacemos que el hilo siguiente se encargue de decidir cual es el siguiente proceso que puede entrar en la seccion critica
 
-
+        siguiente();
         
     }
     return 0;
 }
-
-
-
-

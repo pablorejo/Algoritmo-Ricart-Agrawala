@@ -38,7 +38,7 @@ int main(int argc, char const *argv[])
 
 
     // key_t key = ftok("../procesos_bin",1);
-    key_t key = ftok(".",1);
+    key_t key = ftok(CARPETA,1);
     
     msg_tickets_id = msgget(key, 0660 | IPC_CREAT); // Creamos el buzón
     memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), 0660 | IPC_CREAT);
@@ -74,18 +74,21 @@ int main(int argc, char const *argv[])
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
         
-
+        #ifdef __PRINT_PROCESO
+            printf("Proceso de pagos en ejecucion\n");
+        #endif 
 
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_pagos_anulaciones ++;
         
-
-        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES)
-        {
+        if (mem->pend_pagos_anulaciones == 1){
             mem->quiero = 1;
             mem->prioridad_max_enviada = PAGOS_ANULACIONES;
             sem_post(&(mem->sem_aux_variables));
             enviar_tickets(PAGOS_ANULACIONES);
+            #ifdef __PRINT_PROCESO
+                printf("\n\nLa prioridad enviada mas baja es menor que pagos o anulaciones\n\n");
+            #endif 
             
         }else{
             sem_post(&(mem->sem_aux_variables));
@@ -93,18 +96,17 @@ int main(int argc, char const *argv[])
         
 
         #ifdef __PRINT_PROCESO
-        printf("Intentando entrar en la seccion critica\n");
+            printf("Intentando entrar en la seccion critica\n");
         #endif 
 
         sem_wait(&(mem->sem_paso_pagos_anulaciones)); // Nos dejan entrar en la SC
 
-
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-        printf("Haciendo la SC\n");
-        sleep(SLEEP);
-        printf("Fin de la SC\n");
-        sleep(SLEEP);
+            printf("Haciendo la SC\n");
+            sleep(SLEEP);
+            printf("Fin de la SC\n");
+            sleep(SLEEP);
         #endif 
         // FIN SECCIÓN CRÍTICA
 
@@ -112,9 +114,12 @@ int main(int argc, char const *argv[])
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_pagos_anulaciones --;
         sem_post(&(mem->sem_aux_variables));
-        
 
         siguiente();
+
+        #ifdef __PRINT_PROCESO
+            printf("Fin pagos\n\n");
+        #endif
         
     }
     return 0;

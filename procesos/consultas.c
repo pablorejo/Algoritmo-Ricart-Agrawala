@@ -27,7 +27,7 @@ int main(int argc, char const *argv[])
     
     memoria_compartida *mem;
 
-    key_t key = ftok(".",1);
+    key_t key = ftok(CARPETA,1);
 
     int permisos = 0666; // permisos de lectura/escritura para todos los usuarios
     int msg_memoria_id = shmget(key+keyNodo, sizeof(memoria_compartida), permisos | IPC_CREAT);
