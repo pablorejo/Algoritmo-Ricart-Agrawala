@@ -54,13 +54,7 @@ int main(int argc, char const *argv[])
     mem = shmat(memoria_id, NULL, 0);
 
 
-    if (mem->n_nodos > 0)
-    {
-        for (int i = 0; i < mem->n_nodos; i++)
-        {
-            id_nodos[i] = i + 1;
-        }
-    }else{
+    if (mem->n_nodos <= 0){
         printf("Tiene que haber nodos ejecutandose\n");
         exit(-1);
     }
@@ -71,11 +65,14 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
         #ifdef __PRINT_PROCESO
-            printf("Proceso de pagos en ejecucion\n");
+            printf("Proceso de pagos en ejecucion 2\n");
         #endif 
 
         sem_wait(&(mem->sem_aux_variables));
+
+
         mem->pend_pagos_anulaciones ++;
+        printf("%i\n",mem->pend_pagos_anulaciones);
         
         if (mem->prioridad_max_enviada < PAGOS_ANULACIONES){
             mem->quiero = 1;
@@ -105,7 +102,6 @@ int main(int argc, char const *argv[])
 
 
         sem_wait(&(mem->sem_aux_variables));
-        printf("Hola\n");
         mem->pend_pagos_anulaciones --;
         sem_post(&(mem->sem_aux_variables));
 

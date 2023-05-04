@@ -24,5 +24,5 @@ mv *.h  ../procesos
 
 cd ..
 
-./del_mem.sh
 ./del_procesos.sh
+./del_mem.sh

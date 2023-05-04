@@ -31,7 +31,7 @@ int main(int argc, char const *argv[])
     
 
     signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
-    
+
     // key_t key = ftok("../procesos_bin",1);
     key_t key = ftok(CARPETA,1);
     
@@ -54,7 +54,7 @@ int main(int argc, char const *argv[])
     {
         for (int i = 0; i < mem->n_nodos; i++)
         {
-            id_nodos[i] = i + 1;
+            mem->id_nodos[i] = i + 1;
         }
     }else{
         printf("Tiene que haber nodos ejecutandose\n");

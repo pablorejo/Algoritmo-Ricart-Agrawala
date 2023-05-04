@@ -9,7 +9,7 @@ int  ctrl_c = 0;
 
 // Colas de pendientes de las prioridades recibidas de otros nodos
 int num_pend_p_a = 0,num_pend_a_r = 0;
-int id_nodos_pend_pagos_anulaciones[N-1] = {0}, id_nodos_pend_administracion_reservas[N-1] = {0}, id_nodos_pend_consultas[N-1] = {0};
+
 
 
 
@@ -30,8 +30,6 @@ pthread_t thread_ctrl_c;
 void recibir();
 void* fun_ctrl_c(void *args);
 
-void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
-void *enviar_acks(void *args);
 
 int main(int argc, char const *argv[])
 {
@@ -47,18 +45,14 @@ int main(int argc, char const *argv[])
             mi_id = 1; // Guardamos el id que nos otorgara el usuario    
             n_nodos = 2; // Numero de procesos totales
             // Guardando ids de los procesos
-            for (int i = 0; i < n_nodos; i++){
-                id_nodos[i] = i+1;
-            }
+            
         #endif // DEBUG
 
     }else{
         mi_id = atoi(argv[1]); // Guardamos el id que nos otorgara el usuario    
         n_nodos = atoi(argv[2]); // Numero de nodos totales
         
-        for (int i = 0; i < n_nodos; i++){
-            id_nodos[i] = i+1;
-        }
+        
     }
   
 
@@ -89,6 +83,15 @@ int main(int argc, char const *argv[])
     mem->mi_id = mi_id; mem->n_nodos = n_nodos;
     mem->max_ticket = 0; mem->mi_ticket = 1;
 
+    for (int i = 0; i < n_nodos; i++){
+        mem->id_nodos[i] = i+1;
+    }
+
+    // Arrays de los id pendientes
+    // mem->id_nodos_pend_pagos_anulaciones = {0};
+    // mem->id_nodos_pend_administracion_reservas = {0};
+    // mem->id_nodos_pend_consultas = {0};
+
     //Intra nodo
     mem->pend_pagos_anulaciones = 0; mem->pend_administracion_reservas = 0; mem->pend_consultas = 0;
     mem->prioridad_max_enviada = 0;
@@ -105,14 +108,11 @@ int main(int argc, char const *argv[])
     sem_init(&(mem->sem_paso_pagos_anulaciones),1,0);
     sem_init(&(mem->sem_paso_administracion_reservas),1,0);
     sem_init(&(mem->sem_paso_consultas),1,0);
-    sem_init(&(mem->sem_sync_enviar_ack),1,0);
     // sem_init(&(mem->sem_sync_siguiente),1,0);
 
 
 
     // Proteccion de memoria compartida
-    sem_init(&(mem->sem_pro_ack),1,1);
-    sem_init(&(mem->sem_pro_pend),1,1);
     sem_init(&(mem->sem_aux_variables),1,1);
 
 
@@ -129,7 +129,6 @@ int main(int argc, char const *argv[])
 
 
     mem->tenemos_SC = 0;
-    pthread_create(&thread_enviar, NULL, enviar_acks, NULL);
     pthread_create(&thread_ctrl_c, NULL, fun_ctrl_c, NULL);
     // Controlar el ctrl+c
     signal(SIGINT, &catch_ctrl_c);
@@ -141,56 +140,7 @@ int main(int argc, char const *argv[])
 
 
 
-void *enviar_acks(void *args){
-    // Semaforo de paso
 
-    while (1)
-    {
-
-        sem_wait(&(mem->sem_sync_enviar_ack));
-
-        printf("Vamos a enviar ACKs\n");
-        sem_wait(&(mem->sem_aux_variables));
-        if (mem->quiero == 0){
-            ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
-            ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
-            ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-            printf("Quiero = 0");
-        }else{
-            if (mem->nodos_pend_pagos_anulaciones > 0){
-                ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
-                printf("Enviando ack a los nodos de tipo pagos o anulaciones\n");
-            }else if(mem->nodos_pend_administracion_reservas > 0){
-                ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
-                printf("Enviando ack a los nodos de tipo administracion o reservas\n");
-            }else if(mem->nodos_pend_consultas > 0){
-                ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-                printf("Enviando ack a los nodos de tipo consultas\n");
-            }
-        }
-
-        sem_post(&(mem->sem_aux_variables));
-    }
-}
-
-// Funcion para enviar los ack a los distintos nodos de una misma prioridad
-void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
-    mensaje msg_tick;
-    msg_tick.id_origen = mem->mi_id;
-    msg_tick.ticket_origen = ACK;
-    msg_tick.prioridad = prioridade;
-    
-    for (int i = 0; i < *nodos_pend; i++){
-        // Enviamos los mensajes que nos quedasen pendientes de enviar
-        msg_tick.mtype = id_nodos_pend[i];
-        msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
-
-        #ifdef __PRINT_RECIBIR
-            printf("Enviando el ack al nodo %li desde el nodo %li con prioridad %i\n",msg_tick.mtype,mem->mi_id,prioridade);
-        #endif // DEBUG
-    }
-    *nodos_pend = 0;
-}
 
 
 
@@ -274,7 +224,7 @@ void recibir() {
             msgsnd(msg_tickets_id, &msg_recibir, sizeof(mensaje), 0); //Enviamos ack al nodo origen
 
             #ifdef __PRINT_RECIBIR
-                printf("Enviamos un mensaje de tipo ACK al nodo origen %li\n",msg_recibir.mtype);
+                printf("Enviamos un mensaje de tipo ACK al nodo origen %li desde el hilo recibir\n",msg_recibir.mtype);
             #endif // DEBUG
 
 
@@ -328,15 +278,15 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                id_nodos_pend_pagos_anulaciones[mem->nodos_pend_pagos_anulaciones] = msg_recibir.id_origen;
+                mem->id_nodos_pend_pagos_anulaciones[mem->nodos_pend_pagos_anulaciones] = msg_recibir.id_origen;
                 mem->nodos_pend_pagos_anulaciones ++;
                 break;
             case ADMINISTRACION_RESERVAS:
-                id_nodos_pend_administracion_reservas[mem->nodos_pend_administracion_reservas] =  msg_recibir.id_origen;
+                mem->id_nodos_pend_administracion_reservas[mem->nodos_pend_administracion_reservas] =  msg_recibir.id_origen;
                 mem->nodos_pend_administracion_reservas ++;
                 break;
             case CONSULTAS:
-                id_nodos_pend_consultas[mem->nodos_pend_consultas] = msg_recibir.id_origen;
+                mem->id_nodos_pend_consultas[mem->nodos_pend_consultas] = msg_recibir.id_origen;
                 mem->nodos_pend_consultas++;
             default:
                 break;
