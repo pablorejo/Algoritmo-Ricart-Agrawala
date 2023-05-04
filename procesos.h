@@ -153,4 +153,78 @@ void enviar_tickets(int pri){
         }
     }
 }
+
+
+void siguiente(){
+    sem_wait(&(mem->sem_aux_variables));
+
+    #ifdef __PRINT_RECIBIR
+    // printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
+    #endif // DEBUG
+
+
+    if (mem->pend_pagos_anulaciones > 0){
+        if (mem->nodos_pend_pagos_anulaciones > 0){
+            if (mem->intentos == 0){
+                mem->tenemos_SC = 0;
+                mem->intentos = N_MAX_INTENTOS;
+                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+                mem->prioridad_max_enviada = PAGOS_ANULACIONES;
+                sem_post(&(mem->sem_aux_variables));
+                enviar_tickets(PAGOS_ANULACIONES);
+                // printf("pagos\n");
+                
+            }else {
+                mem->intentos --;
+                sem_post(&(mem->sem_aux_variables));
+                sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
+                // printf("pagos\n");
+            }
+        }else {
+            mem->intentos = N_MAX_INTENTOS;
+            sem_post(&(mem->sem_aux_variables));
+            sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
+            // printf("pagos\n");
+        }
+    }else if (mem->nodos_pend_pagos_anulaciones > 0){
+        // printf("pagos\n");
+        mem->tenemos_SC = 0;
+        sem_post(&(mem->sem_aux_variables));
+        sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos;
+    }else if (mem->pend_administracion_reservas > 0){
+
+        if (mem->nodos_pend_administracion_reservas){
+            if (mem->intentos == 0){
+                mem->tenemos_SC = 0;
+                mem->intentos = N_MAX_INTENTOS;
+                sem_post(&mem->sem_sync_enviar_ack); // No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
+                mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
+                sem_post(&(mem->sem_aux_variables));
+                enviar_tickets(ADMINISTRACION_RESERVAS);
+            }else {
+                mem->intentos --;
+                sem_post(&(mem->sem_aux_variables));
+                sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
+            }
+        }else {
+            mem->intentos = N_MAX_INTENTOS;
+            sem_post(&(mem->sem_aux_variables));
+            sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
+        }
+    }else if (mem->nodos_pend_administracion_reservas > 0){
+        mem->tenemos_SC = 0;
+        sem_post(&(mem->sem_aux_variables));
+        sem_post(&mem->sem_sync_enviar_ack);
+    }else{
+        mem->prioridad_max_enviada = CONSULTAS;
+        if (mem->pend_consultas > 0){
+            sem_post(&(mem->sem_paso_consultas));
+        }
+        if (mem->nodos_pend_consultas>0){
+            sem_post(&mem->sem_sync_enviar_ack);
+        }
+        sem_post(&(mem->sem_aux_variables));
+    }
+   
+}
 #endif
