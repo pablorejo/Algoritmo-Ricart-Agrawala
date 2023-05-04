@@ -100,4 +100,57 @@ int memoria_id;
 memoria_compartida *mem;
 
 #define PROCESO_SYNC 1
+
+
+
+void reset_prioriti(){
+    if (mem->pend_pagos_anulaciones > 0){
+        mem->prioridad_max_enviada = PAGOS_ANULACIONES;
+        enviar_tickets(PAGOS_ANULACIONES);
+    }else if (mem->pend_administracion_reservas > 0){
+        mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
+        enviar_tickets(ADMINISTRACION_RESERVAS);
+    }else if (mem->pend_consultas){
+        mem->prioridad_max_enviada = CONSULTAS;
+        enviar_tickets(CONSULTAS);
+    }else {
+        mem->prioridad_max_enviada = 0;
+    }
+}
+void enviar_tickets(int pri){
+
+    // Enviamos los tickets para poder entrar en la sección crítica
+    mensaje msg_tick;
+    msg_tick.id_origen = mem->mi_id;
+    msg_tick.ticket_origen = mem->mi_ticket;
+    msg_tick.prioridad = pri;
+
+
+    #ifdef __PRINT_PROCESO
+    printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
+    #endif 
+    for (int i = 0; i < mem->n_nodos; i++)
+    {
+        if (id_nodos[i] != mem->mi_id){
+            sem_wait(&(mem->sem_aux_variables));
+            switch (pri)
+            {
+            case PAGOS_ANULACIONES:
+                mem->ack_pend_pagos_anulaciones ++;
+                break;
+            case ADMINISTRACION_RESERVAS:
+                mem->ack_pend_administracion_reservas ++;
+                break;
+            case CONSULTAS:
+                mem->ack_pend_consultas ++;
+                break;
+            default:
+                break;
+            }
+            sem_post(&(mem->sem_aux_variables));
+            msg_tick.mtype = id_nodos[i]; // Solo hace falta cambiar este parte del codigo de tal forma que irá mas rápido
+            msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
+        }
+    }
+}
 #endif

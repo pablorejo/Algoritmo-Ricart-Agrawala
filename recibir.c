@@ -154,7 +154,7 @@ void enviar_acks(){
     
         sem_wait(&(mem->sem_sync_enviar_ack));
 
-
+        sem_wait(&(mem->sem_aux_variables));
         if (mem->quiero == 0){
             ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
             ack(id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
@@ -168,18 +168,22 @@ void enviar_acks(){
                 ack(id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
             }
         }
+
+        printf("enviando ack");
+        sem_post(&(mem->sem_aux_variables));
     }
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
     mensaje msg_tick;
+    msg_tick.id_origen = mem->mi_id;
+    msg_tick.ticket_origen = ACK;
+    msg_tick.prioridad = prioridade;
+    
     for (int i = 0; i < *nodos_pend; i++){
         // Enviamos los mensajes que nos quedasen pendientes de enviar
         msg_tick.mtype = id_nodos_pend[i];
-        msg_tick.id_origen = mem->mi_id;
-        msg_tick.ticket_origen = ACK;
-        msg_tick.prioridad = prioridade;
         msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
 
         #ifdef __PRINT_RECIBIR
@@ -219,20 +223,10 @@ void recibir() {
         
         // asignamos el valor maximo a ticket maximo
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
+        mem->mi_ticket = mem->max_ticket +1;
 
 
-
-        // Comprobamos la prioridad maxima de los procesos en este momento
-        int prioridad_max_procesos;
-        if (mem->pend_pagos_anulaciones > 0){
-            prioridad_max_procesos = PAGOS_ANULACIONES;
-        }else if (mem->pend_administracion_reservas > 0){
-            prioridad_max_procesos = ADMINISTRACION_RESERVAS;
-        }else if (mem->pend_consultas > 0){
-            prioridad_max_procesos = CONSULTAS;
-        }else {
-            prioridad_max_procesos = 0;
-        }
+        
         
 
         if  (
@@ -243,10 +237,11 @@ void recibir() {
                             msg_recibir.ticket_origen == mem->mi_ticket 
                             && msg_recibir.id_origen < mem->mi_id
                             )
+                        || msg_recibir.prioridad > mem->prioridad_max_enviada // En el caso de que la prioridad recivida sea mayor que la prioridad maxima nuestra enviada
                     ) 
                 && 
                     (msg_recibir.ticket_origen != ACK)
-                && (msg_recibir.prioridad >= prioridad_max_procesos )
+                && (msg_recibir.prioridad >= mem->prioridad_max_enviada )
                 && (mem->tenemos_SC == 0) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes
             )
             {
@@ -257,12 +252,16 @@ void recibir() {
             
 
             // Comprobamos si la prioridad es mayor a la que tienen nuestro procesos en ese caso tendremos que volver a mandar las peticiones unicamente al nodo que nos mandó la prioridad
-            if (msg_recibir.prioridad > prioridad_max_procesos){
+            if (msg_recibir.prioridad > mem->prioridad_max_enviada){
                 mensaje msg;
-                mem->ack_pend_administracion_reservas ++; //Aumentamos el numero de acks pendientes de ser atendidos
+                if (msg_recibir.prioridad == ADMINISTRACION_RESERVAS){
+                    mem->ack_pend_administracion_reservas ++; //Aumentamos el numero de acks pendientes de ser atendidos
+                }else{
+                    mem->ack_pend_consultas ++;
+                }
                 msg.mtype = msg_recibir.id_origen; // Lo enviamos a la id origen del mensaje recivido
                 msg.id_origen = mem->mi_id; // Lo mandamos desde nuestra id
-                msg.prioridad = prioridad_max_procesos; // Lo mandamos con la prioridad maxima actual de nuestro nodo
+                msg.prioridad = mem->prioridad_max_enviada; // Lo mandamos con la prioridad maxima actual de nuestro nodo
                 msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos ack al nodo origen
             }
 
@@ -321,7 +320,7 @@ void recibir() {
             }
         }
 
-        else {
+        else { // En caso de que no sea un ack ni tampoco se pueda enviar un ack entonces se pondran en cola
             #ifdef __PRINT_RECIBIR
                 printf("Recivimos proceso pendiente con prioridad %i\n",msg_recibir.prioridad);
             #endif // DEBUG
