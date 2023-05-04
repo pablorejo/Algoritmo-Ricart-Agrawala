@@ -95,13 +95,13 @@ int main(int argc, char const *argv[])
     //Intra nodo
     mem->pend_pagos_anulaciones = 0; mem->pend_administracion_reservas = 0; mem->pend_consultas = 0;
     mem->prioridad_max_enviada = 0;
+    sem_init(&(mem->sem_mutex),1,1); // Semaforo de exclusion mutua intra nodos
 
 
     //Entre nodos
     mem->nodos_pend_administracion_reservas = 0; mem->nodos_pend_pagos_anulaciones = 0; mem->nodos_pend_consultas = 0;
     mem->ack_pend_administracion_reservas = 0; mem->ack_pend_pagos_anulaciones = 0; mem->ack_pend_consultas = 0;
     mem->intentos = N_MAX_INTENTOS;
-    // Inicializamos los semaforos de exclusion mutua
 
 
     // Semaforos de paso 
@@ -114,6 +114,7 @@ int main(int argc, char const *argv[])
 
     // Proteccion de memoria compartida
     sem_init(&(mem->sem_aux_variables),1,1);
+
 
 
     #ifdef __PRINT_RECIBIR
@@ -247,7 +248,7 @@ void recibir() {
             case PAGOS_ANULACIONES:
                 printf("PAGOS_ANULACIONES\n");
                 mem->ack_pend_pagos_anulaciones--;
-                if (mem->ack_pend_pagos_anulaciones == 0)
+                if (mem->ack_pend_pagos_anulaciones == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_pagos_anulaciones));
@@ -259,7 +260,7 @@ void recibir() {
                 printf("ADMINISTRACION_RESERVAS\n");
 
                 mem->ack_pend_administracion_reservas--;
-                if (mem->ack_pend_administracion_reservas == 0)
+                if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_administracion_reservas));

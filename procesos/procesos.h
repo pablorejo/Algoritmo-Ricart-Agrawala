@@ -41,6 +41,8 @@ typedef struct
 
     // Memoria compartida
     int quiero;
+
+    sem_t sem_mutex; // Semaforo de exclusion mutua
     // int procesos_p_a_esp, procesos_a_r_esp; // Procesos esperando a pasar a la cola
 
     int mi_ticket,max_ticket;
@@ -252,11 +254,13 @@ void siguiente(){
 }
 
 void seccionCritica(){
+    sem_wait(&(mem->sem_mutex));
     sleep(SLEEP);
     printf("Haciendo la SC\n");
     sleep(SLEEP);
     printf("Fin de la SC\n");
     sleep(SLEEP);
+    sem_post(&(mem->sem_mutex));
 }
 
 void reset_pri(){

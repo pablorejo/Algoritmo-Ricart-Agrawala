@@ -76,7 +76,7 @@ int main(int argc, char const *argv[])
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas ++;
         
-        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS){
+        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS && mem->tenemos_SC == 0){
             mem->quiero = 1;
             mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
             sem_post(&(mem->sem_aux_variables));
