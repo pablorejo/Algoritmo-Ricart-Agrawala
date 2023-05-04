@@ -3,6 +3,11 @@
   - [ERRORES](#errores)
     - [MEMORIA COMPARTIDA](#memoria-compartida)
     - [BUZONES](#buzones)
+- [Nuestros procesos](#nuestros-procesos)
+  - [PAGOS ANULACION](#pagos-anulacion)
+  - [ADMINISTRACIÓN Y RESERVAS](#administración-y-reservas)
+  - [CONSULTAS](#consultas)
+  - [BINARIOS](#binarios)
 # Algoritmo-Ricart-Agrawala
 
 En esta práctica hablaremos sobre el algoritmo `Ricart-Agrawala` para proteger secciones seciones críticas de procesos que están distribuidos
@@ -48,3 +53,21 @@ El proceso recivir recibirá el mensaje
 ```c
 
 ``` -->
+
+# Nuestros procesos
+Tendremos creados los siguientes programas
+## PAGOS ANULACION
+Los procesos de pagos y anulacioens tienen la misma prioridad por lo que su código será el mismo [pagos.c](procesos/pagos.c)
+
+## ADMINISTRACIÓN Y RESERVAS
+Los procesos de administracion y reservas tienen la misma prioridad por lo que su código será el mismo [administracion.c](procesos/administracion.c)
+
+## CONSULTAS 
+Este código debe ser único por eso solo tendrá el fichero [consultas.c](procesos/consultas.c)
+
+
+## BINARIOS
+En los binarios si que tendremos los ejecutables de los distintos procesos que se crearan autamaticamente ejecutando el scritp ejecutar.sh
+```bash
+./ejecutar.sh
+```
