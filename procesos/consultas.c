@@ -1,4 +1,4 @@
-#include "../procesos.h"
+#include "procesos.h"
 
 int pid;
 

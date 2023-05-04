@@ -94,6 +94,8 @@ typedef struct
 #define N_MAX_INTENTOS 3
 
 void enviar_tickets(int pri);
+void siguiente();
+
 int id_nodos[N-1];
 int msg_tickets_id;
 int memoria_id;
@@ -144,7 +146,7 @@ void enviar_tickets(int pri){
 void siguiente(){
     sem_wait(&(mem->sem_aux_variables));
     #ifdef __PRINT_RECIBIR
-    // printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
+        printf("pend_pagos_anulaciones: %i\npend_administracion_reservas: %i\npend_consultas: %i\nnodos_pend_pagos_anulaciones: %i\nnodos_pend_administracion_reservas: %i\nnodos_pend_consultas: %i\n", mem->pend_pagos_anulaciones,mem->pend_administracion_reservas,mem->pend_consultas,mem->nodos_pend_pagos_anulaciones,mem->nodos_pend_administracion_reservas,mem->nodos_pend_consultas);
         printf("Siguiente\n");
     #endif // DEBUG
 
@@ -204,10 +206,13 @@ void siguiente(){
         if (mem->nodos_pend_consultas>0){
             sem_post(&mem->sem_sync_enviar_ack);
         }
+        printf("\nNo hay nada\n");
     }
 
     sem_post(&(mem->sem_aux_variables));
 
-    printf("Fin siguiente\n\n");
+    printf("Fin siguiente 2\n\n");
 }
+
 #endif
+

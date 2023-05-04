@@ -1,11 +1,7 @@
-#include "../procesos.h"
+#include "procesos.h"
 #include <errno.h>
 
 int pid;
-
-
-void siguiente();
-
 
 int main(int argc, char const *argv[])
 {

@@ -1,11 +1,12 @@
 #!/bin/bash
 directorio=procesos_bin
 
-rm -r 
 mkdir $directorio
-gcc recibir.c -o recibir -Wall
-mv recibir procesos_bin
+
 cd procesos
+
+gcc recibir.c   -o recibir -Wall
+
 gcc pagos.c -o pagos -Wall
 cp pagos anulaciones
 
@@ -19,5 +20,6 @@ mv * ../$directorio
 cd ../$directorio
  
 mv *.c  ../procesos
+mv *.h  ../procesos
 
 cd ..
