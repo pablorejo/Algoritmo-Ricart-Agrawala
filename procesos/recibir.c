@@ -29,7 +29,7 @@ pthread_t thread_ctrl_c;
 
 void recibir();
 void* fun_ctrl_c(void *args);
-void catch_ctrl_c(int sig);
+
 void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
 void *enviar_acks(void *args);
 
@@ -149,6 +149,7 @@ void *enviar_acks(void *args){
 
         sem_wait(&(mem->sem_sync_enviar_ack));
 
+        printf("Vamos a enviar ACKs\n");
         sem_wait(&(mem->sem_aux_variables));
         if (mem->quiero == 0){
             ack(id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);

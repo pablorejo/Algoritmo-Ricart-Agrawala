@@ -5,6 +5,7 @@ int pid;
 
 int main(int argc, char const *argv[])
 {
+    detener = 0;
     int keyNodo;
     if (argc < 2){
         #ifndef DEBUG
@@ -31,6 +32,8 @@ int main(int argc, char const *argv[])
 
 
 
+
+    signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
 
 
     // key_t key = ftok("../procesos_bin",1);
@@ -61,9 +64,6 @@ int main(int argc, char const *argv[])
         printf("Tiene que haber nodos ejecutandose\n");
         exit(-1);
     }
-
-
-
 
 
     while (1){
@@ -105,6 +105,7 @@ int main(int argc, char const *argv[])
 
 
         sem_wait(&(mem->sem_aux_variables));
+        printf("Hola\n");
         mem->pend_pagos_anulaciones --;
         sem_post(&(mem->sem_aux_variables));
 
@@ -113,7 +114,14 @@ int main(int argc, char const *argv[])
         #ifdef __PRINT_PROCESO
             printf("Fin pagos\n\n");
         #endif
+        if (detener == 1){
+            exit(0);
+        }
         
     }
     return 0;
+}
+
+void catch_ctrl_c(int sig){
+    detener = 1;
 }

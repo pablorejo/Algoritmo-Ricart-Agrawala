@@ -5,6 +5,7 @@ int pid;
 
 int main(int argc, char const *argv[])
 {
+    detener = 0;
     int keyNodo;
     if (argc < 2){
         #ifndef DEBUG
@@ -111,6 +112,15 @@ int main(int argc, char const *argv[])
             printf("Fin pagos\n\n");
         #endif
         
+        if (detener == 1){
+            exit(0);
+        }
     }
     return 0;
 }
+
+
+void catch_ctrl_c(int sig){
+    detener = 1;
+}
+
