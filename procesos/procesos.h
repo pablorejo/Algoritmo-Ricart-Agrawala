@@ -55,6 +55,10 @@ typedef struct
     int intentos;
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
 
+    // Para las consultas
+    int n_consultas; // Saber cuantas consultas están en SC;
+    sem_t sem_pro_n_consultas;
+
     //// Para los nodos
     int nodos_pend_pagos_anulaciones, nodos_pend_administracion_reservas, nodos_pend_consultas;
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
@@ -76,7 +80,7 @@ typedef struct
 
 
 
-#define SLEEP 3 // Tiempo de espera para poder ver bien lo que hace
+#define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
 
 
 
@@ -236,10 +240,10 @@ void siguiente(){
         }
         enviar_acks();
     }else{
-        mem->prioridad_max_enviada = 0;
         if (mem->pend_consultas > 0){
             sem_post(&(mem->sem_paso_consultas));
         }else{
+            mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
         }
 
@@ -254,13 +258,11 @@ void siguiente(){
 }
 
 void seccionCritica(){
-    sem_wait(&(mem->sem_mutex));
     sleep(SLEEP);
     printf("Haciendo la SC\n");
     sleep(SLEEP);
     printf("Fin de la SC\n");
     sleep(SLEEP);
-    sem_post(&(mem->sem_mutex));
 }
 
 void reset_pri(){

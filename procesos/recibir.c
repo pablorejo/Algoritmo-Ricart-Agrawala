@@ -97,6 +97,9 @@ int main(int argc, char const *argv[])
     mem->prioridad_max_enviada = 0;
     sem_init(&(mem->sem_mutex),1,1); // Semaforo de exclusion mutua intra nodos
 
+    mem->n_consultas = 0;
+    sem_init(&(mem->sem_pro_n_consultas),1,1);// Semaforo para protejer la variable conpartida de n_consultas
+
 
     //Entre nodos
     mem->nodos_pend_administracion_reservas = 0; mem->nodos_pend_pagos_anulaciones = 0; mem->nodos_pend_consultas = 0;
@@ -265,6 +268,16 @@ void recibir() {
                     mem->tenemos_SC = 1;
                     sem_post(&(mem->sem_paso_administracion_reservas));
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
+                }
+                break;
+            case CONSULTAS:
+                printf("CONSULTAS");
+                mem->ack_pend_consultas--;
+                if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0)
+                {
+                    mem->tenemos_SC = 1;
+                    sem_post(&(mem->sem_paso_consultas));
+                    printf("Dejamos que el proceso de consultas pueda entrar\n");
                 }
                 break;
             default:

@@ -50,13 +50,7 @@ int main(int argc, char const *argv[])
     mem = shmat(memoria_id, NULL, 0);
 
 
-    if (mem->n_nodos > 0)
-    {
-        for (int i = 0; i < mem->n_nodos; i++)
-        {
-            mem->id_nodos[i] = i + 1;
-        }
-    }else{
+    if (mem->n_nodos <= 0){
         printf("Tiene que haber nodos ejecutandose\n");
         exit(-1);
     }

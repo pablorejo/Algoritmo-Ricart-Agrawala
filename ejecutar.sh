@@ -13,7 +13,7 @@ cp pagos anulaciones
 gcc administracion.c -o administracion -Wall
 cp administracion reservas
 
-# gcc consultas.c -o consultas -Wall
+gcc consultas.c -o consultas -Wall
 
 mv * ../$directorio
 
