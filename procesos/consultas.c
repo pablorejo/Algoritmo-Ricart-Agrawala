@@ -63,29 +63,26 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
         #ifdef __PRINT_PROCESO
-            printf("Proceso de pagos en ejecucion\n");
+            printf("Proceso de consultas en ejecucion\n");
         #endif 
 
 
         sem_wait(&(mem->sem_pro_n_consultas));
         printf("Nos dejan pasar\n");
         sem_wait(&(mem->sem_aux_variables));
+
         mem->pend_consultas ++;
 
 
-
-        if (mem->prioridad_max_enviada < CONSULTAS && mem->tenemos_SC == 0){
+        if (mem->prioridad_max_enviada < CONSULTAS && mem->tenemos_SC == 0 ){
             mem->quiero = 1;
             mem->prioridad_max_enviada = CONSULTAS;
             sem_post(&(mem->sem_aux_variables));
             enviar_tickets(CONSULTAS);
             #ifdef __PRINT_PROCESO
-                printf("La prioridad enviada mas baja es menor que administracion o reservas\n");
+                printf("La prioridad enviada mas baja es menor que consultas\n");
             #endif 
 
-
-            
-            
             
         }else{
             
@@ -98,28 +95,46 @@ int main(int argc, char const *argv[])
 
 
         sem_wait(&(mem->sem_aux_variables));
-        mem->n_consultas ++;  // aumentamos el numero de consultas que entraran en ejecucion
         if (mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0 && mem->nodos_pend_pagos_anulaciones == 0 && mem->nodos_pend_administracion_reservas == 0){
-            if (mem->n_consultas == 1){ // En caso de que sea el primero de consultas sera el el que espere a que pueda entrar en la SC
+            if (mem->n_consultas == 0){ // En caso de que sea el primero de consultas sera el el que espere a que pueda entrar en la SC
                 printf("Soy la primera consulta\n");
+                mem->n_consultas ++; 
                 sem_post(&(mem->sem_aux_variables)); 
                 sem_wait(&(mem->sem_paso_consultas)); // Esperamos a que nos dejen entrar en la SC
                 sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
             }else{
+                mem->n_consultas ++; 
                 sem_post(&(mem->sem_aux_variables));
                 sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
             }
 
             printf("No hay procesos prioritarios pendientes\n");
         }else{
-            sem_post(&(mem->sem_aux_variables));
-            printf("Hay procesos prioritarios pendientes no se pueden dejar pasar mas procesos de consultas\n");
+            
+            if (mem->n_consultas == 0){
+                sem_post(&(mem->sem_aux_variables)); 
+                sem_wait(&(mem->sem_paso_consultas));
+                
+            }else{
+                sem_post(&(mem->sem_aux_variables)); 
+                sem_wait(&(mem->sem_ctrl_paso_consultas));
+            }
+            sem_post(&(mem->sem_ctrl_paso_consultas));
+
+
+
+            sem_wait(&(mem->sem_aux_variables)); 
+            mem->n_consultas ++; 
+            sem_post(&(mem->sem_aux_variables)); 
         }
+
+      
+
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
             seccionCritica();
-        #endif 
+        #endif
         // FIN SECCIÓN CRÍTICA
 
 
@@ -131,9 +146,8 @@ int main(int argc, char const *argv[])
             mem->prioridad_max_enviada = 0;
             sem_post(&(mem->sem_aux_variables));
             siguiente();
-
+            sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
             printf("Fin de las consultas\n");
-            sem_post(&(mem->sem_pro_n_consultas)); // La ultima consulta deberá dejar entrar a otras consultas para que lo intenten
         }else{
             sem_post(&(mem->sem_aux_variables));
         }

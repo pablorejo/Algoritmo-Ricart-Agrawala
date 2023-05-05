@@ -97,9 +97,9 @@ int main(int argc, char const *argv[])
     mem->prioridad_max_enviada = 0;
     sem_init(&(mem->sem_mutex),1,1); // Semaforo de exclusion mutua intra nodos
 
-    mem->n_consultas = 0;
+    mem->n_consultas = 0, mem->esperando_consultas = 0;
     sem_init(&(mem->sem_pro_n_consultas),1,1);// Semaforo para protejer la variable conpartida de n_consultas
-
+    sem_init(&(mem->sem_ctrl_paso_consultas),1,0);
 
     //Entre nodos
     mem->nodos_pend_administracion_reservas = 0; mem->nodos_pend_pagos_anulaciones = 0; mem->nodos_pend_consultas = 0;
@@ -191,11 +191,12 @@ void recibir() {
                             && msg_recibir.id_origen < mem->mi_id
                             )
                         || msg_recibir.prioridad > mem->prioridad_max_enviada // En el caso de que la prioridad recivida sea mayor que la prioridad maxima nuestra enviada
+                        || mem->n_consultas > 0 // Comprobamos si se estan ejecutando consultas
                     ) 
                 && 
                     (msg_recibir.ticket_origen != ACK)
                 && (msg_recibir.prioridad >= mem->prioridad_max_enviada )
-                && (mem->tenemos_SC == 0) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes
+                && (mem->tenemos_SC == 0 || mem->prioridad_max_enviada == CONSULTAS) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
             )
             {
             // En caso de que no queramos enviar un ticket quiero = 0
@@ -254,6 +255,7 @@ void recibir() {
                 if (mem->ack_pend_pagos_anulaciones == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
+                    mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_pagos_anulaciones));
                     printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
                 }
@@ -266,6 +268,7 @@ void recibir() {
                 if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
+                    mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_administracion_reservas));
                     printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
                 }
@@ -276,6 +279,7 @@ void recibir() {
                 if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
+                    mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_consultas));
                     printf("Dejamos que el proceso de consultas pueda entrar\n");
                 }

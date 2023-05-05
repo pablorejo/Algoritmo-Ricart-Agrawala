@@ -70,7 +70,7 @@ int main(int argc, char const *argv[])
         mem->pend_pagos_anulaciones ++;
         printf("%i\n",mem->pend_pagos_anulaciones);
         
-        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES && mem->tenemos_SC == 0){
+        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES && (mem->tenemos_SC == 0 || mem->n_consultas > 0)){
             mem->quiero = 1;
             mem->prioridad_max_enviada = PAGOS_ANULACIONES;
             sem_post(&(mem->sem_aux_variables));

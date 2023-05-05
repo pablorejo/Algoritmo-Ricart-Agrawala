@@ -56,8 +56,8 @@ typedef struct
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
 
     // Para las consultas
-    int n_consultas; // Saber cuantas consultas están en SC;
-    sem_t sem_pro_n_consultas;
+    int n_consultas, esperando_consultas; // Saber cuantas consultas están en SC;
+    sem_t sem_pro_n_consultas, sem_ctrl_paso_consultas;
 
     //// Para los nodos
     int nodos_pend_pagos_anulaciones, nodos_pend_administracion_reservas, nodos_pend_consultas;
@@ -80,7 +80,7 @@ typedef struct
 
 
 
-#define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
+#define SLEEP 3 // Tiempo de espera para poder ver bien lo que hace
 
 
 
@@ -169,7 +169,7 @@ void siguiente(){
     #endif // DEBUG
 
 
-    if (mem->pend_pagos_anulaciones > 0){
+    if (mem->pend_pagos_anulaciones > 0 && mem->n_consultas == 0){
         if (mem->nodos_pend_pagos_anulaciones > 0){
             if (mem->intentos == 0){
                 mem->tenemos_SC = 0;
@@ -188,9 +188,9 @@ void siguiente(){
             mem->intentos = N_MAX_INTENTOS;
             sem_post(&(mem->sem_aux_variables));
             sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-            printf("Pagos\n");
+            printf("\nPagos en el nodo sin pagos pend en otros nodos\n");
         }
-    }else if (mem->nodos_pend_pagos_anulaciones > 0){
+    }else if (mem->nodos_pend_pagos_anulaciones > 0 && mem->n_consultas == 0){
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
         if (mem->pend_administracion_reservas > 0){
@@ -202,12 +202,11 @@ void siguiente(){
         }else {
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
-
             sem_post(&(mem->sem_aux_variables));
         }
         enviar_acks();// No dejamos pasar a mas procesos;
 
-    }else if (mem->pend_administracion_reservas > 0){
+     }else if (mem->pend_administracion_reservas > 0 && mem->n_consultas == 0){
         printf("pend_administracion_reservas > 0\n");
         if (mem->nodos_pend_administracion_reservas){
             if (mem->intentos == 0){
@@ -226,7 +225,7 @@ void siguiente(){
             sem_post(&(mem->sem_aux_variables));
             sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
         }
-    }else if (mem->nodos_pend_administracion_reservas > 0){
+    }else if (mem->nodos_pend_administracion_reservas > 0 && mem->n_consultas == 0){
         printf("nodos_pend_administracion_reservas > 0\n");
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
@@ -256,7 +255,7 @@ void siguiente(){
         printf("\nNo hay nada\n");
     }
 
-    printf("Fin siguiente 2\n\n");
+    printf("Fin siguiente\n\n");
 }
 
 void seccionCritica(){
