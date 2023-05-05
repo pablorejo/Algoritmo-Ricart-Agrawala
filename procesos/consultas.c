@@ -66,9 +66,6 @@ int main(int argc, char const *argv[])
             printf("Proceso de consultas en ejecucion\n");
         #endif 
 
-
-        sem_wait(&(mem->sem_pro_n_consultas));
-        printf("Nos dejan pasar\n");
         sem_wait(&(mem->sem_aux_variables));
 
         mem->pend_consultas ++;
@@ -94,42 +91,28 @@ int main(int argc, char const *argv[])
         #endif 
 
 
-        sem_wait(&(mem->sem_aux_variables));
-        if (mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0 && mem->nodos_pend_pagos_anulaciones == 0 && mem->nodos_pend_administracion_reservas == 0){
-            if (mem->n_consultas == 0){ // En caso de que sea el primero de consultas sera el el que espere a que pueda entrar en la SC
-                printf("Soy la primera consulta\n");
-                mem->n_consultas ++; 
-                sem_post(&(mem->sem_aux_variables)); 
-                sem_wait(&(mem->sem_paso_consultas)); // Esperamos a que nos dejen entrar en la SC
-                sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
-            }else{
-                mem->n_consultas ++; 
-                sem_post(&(mem->sem_aux_variables));
-                sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
-            }
-
-            printf("No hay procesos prioritarios pendientes\n");
-        }else{
+        
             
-            if (mem->n_consultas == 0){
-                sem_post(&(mem->sem_aux_variables)); 
-                sem_wait(&(mem->sem_paso_consultas));
-                
-            }else{
-                sem_post(&(mem->sem_aux_variables)); 
-                sem_wait(&(mem->sem_ctrl_paso_consultas));
-            }
-            sem_post(&(mem->sem_ctrl_paso_consultas));
-
-
-
-            sem_wait(&(mem->sem_aux_variables)); 
-            mem->n_consultas ++; 
+        if (mem->esperando_consultas == 0){
+            
+            mem->esperando_consultas = 1;
             sem_post(&(mem->sem_aux_variables)); 
+            sem_wait(&(mem->sem_paso_consultas));
+            
+        }else{
+            sem_post(&(mem->sem_aux_variables)); 
+            sem_wait(&(mem->sem_ctrl_paso_consultas));
+        }
+        
+
+        sem_post(&(mem->sem_aux_variables)); 
+        mem->n_consultas ++; 
+        if ((mem->pend_pagos_anulaciones > 0 || mem->pend_administracion_reservas > 0 || mem->nodos_pend_pagos_anulaciones > 0 || mem->nodos_pend_administracion_reservas > 0 ) && mem->n_consultas < mem->pend_consultas){
+            sem_post(&(mem->sem_ctrl_paso_consultas));
+            sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
         }
 
-      
-
+            
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
@@ -143,10 +126,10 @@ int main(int argc, char const *argv[])
 
         mem->n_consultas --;
         if (mem->n_consultas == 0){
+            mem->esperando_consultas = 0;
             mem->prioridad_max_enviada = 0;
             sem_post(&(mem->sem_aux_variables));
             siguiente();
-            sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
             printf("Fin de las consultas\n");
         }else{
             sem_post(&(mem->sem_aux_variables));
