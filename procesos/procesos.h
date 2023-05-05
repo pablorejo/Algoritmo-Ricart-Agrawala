@@ -161,7 +161,6 @@ void enviar_tickets(int pri){
     }
 }
 
-
 void siguiente(){
     sem_wait(&(mem->sem_aux_variables));
     #ifdef __PRINT_RECIBIR
@@ -203,6 +202,7 @@ void siguiente(){
         }else {
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
+
             sem_post(&(mem->sem_aux_variables));
         }
         enviar_acks();// No dejamos pasar a mas procesos;
@@ -245,6 +245,8 @@ void siguiente(){
         }else{
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
+            mem->tenemos_SC = 0;
+            printf("No hay procesos pendientes en el nodo\n");
         }
 
         if (mem->nodos_pend_consultas>0){

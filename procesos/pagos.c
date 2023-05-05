@@ -29,10 +29,6 @@ int main(int argc, char const *argv[])
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
     
-
-
-
-
     signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
 
 
@@ -96,7 +92,7 @@ int main(int argc, char const *argv[])
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-            
+
             seccionCritica();
         #endif 
         // FIN SECCIÓN CRÍTICA
