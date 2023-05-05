@@ -91,25 +91,28 @@ int main(int argc, char const *argv[])
         #endif 
 
 
-        
-            
-        if (mem->esperando_consultas == 0){
+        sem_wait(&(mem->sem_aux_variables)); 
+        // Aqui podemos porner otro tipo de semaforo
+        if (mem->esperando_consultas == 0){ // Comprobamos que no estamos esperando ya una consulta
             
             mem->esperando_consultas = 1;
             sem_post(&(mem->sem_aux_variables)); 
             sem_wait(&(mem->sem_paso_consultas));
             
-        }else{
+        }else{ // Si ya estamos esperando por consultas esperamos a que la primera que esta esperando nos deje entrar
             sem_post(&(mem->sem_aux_variables)); 
             sem_wait(&(mem->sem_ctrl_paso_consultas));
         }
         
 
-        sem_post(&(mem->sem_aux_variables)); 
+        sem_wait(&(mem->sem_aux_variables)); 
         mem->n_consultas ++; 
         if ((mem->pend_pagos_anulaciones > 0 || mem->pend_administracion_reservas > 0 || mem->nodos_pend_pagos_anulaciones > 0 || mem->nodos_pend_administracion_reservas > 0 ) && mem->n_consultas < mem->pend_consultas){
+            sem_post(&(mem->sem_aux_variables)); 
             sem_post(&(mem->sem_ctrl_paso_consultas));
             sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
+        }else{
+            sem_post(&(mem->sem_aux_variables)); 
         }
 
             
