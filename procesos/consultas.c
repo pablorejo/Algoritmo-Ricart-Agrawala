@@ -58,7 +58,9 @@ int main(int argc, char const *argv[])
 
 
     ///////// Aqui empieza el programa ////////////////
+    #ifdef __BUCLE
     while (1){
+    #endif
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
         
@@ -157,7 +159,9 @@ int main(int argc, char const *argv[])
         if (detener == 1){
             exit(0);
         }
+    #ifdef __BUCLE
     }
+    #endif
     return 0;
 }
 
