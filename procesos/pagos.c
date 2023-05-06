@@ -5,7 +5,6 @@ int pid;
 
 int main(int argc, char const *argv[])
 {
-    detener = 0;
     int keyNodo;
     if (argc < 2){
         #ifndef DEBUG
@@ -22,14 +21,13 @@ int main(int argc, char const *argv[])
     }
 
     
-    printf("Hola\n");
     pid = getpid();
 
     #ifdef __PRINT_PROCESO
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
     
-    signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
+    // signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
 
 
     // key_t key = ftok("../procesos_bin",1);
@@ -56,65 +54,60 @@ int main(int argc, char const *argv[])
     }
 
 
-    while (1){
-        // Quiero entrar en la sección críticia
-        // Compruebo que no hay procesos prioritários intentando entrar.
-        
-        #ifdef __PRINT_PROCESO
-            printf("Proceso de pagos en ejecucion 2\n");
-        #endif 
 
-        sem_wait(&(mem->sem_aux_variables));
+    // *************************************************************** PROCESO *************************************************************** //
+    // Quiero entrar en la sección críticia
+    // Compruebo que no hay procesos prioritários intentando entrar.
+    
+    #ifdef __PRINT_PROCESO
+        printf("Proceso de pagos en ejecucion 2\n");
+    #endif 
 
-
-        mem->pend_pagos_anulaciones ++;
-        printf("%i\n",mem->pend_pagos_anulaciones);
-        
-        if (mem->prioridad_max_enviada < PAGOS_ANULACIONES && (mem->tenemos_SC == 0 || mem->n_consultas > 0)){
-            mem->quiero = 1;
-            mem->prioridad_max_enviada = PAGOS_ANULACIONES;
-            sem_post(&(mem->sem_aux_variables));
-            enviar_tickets(PAGOS_ANULACIONES);
-            #ifdef __PRINT_PROCESO
-                printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
-            #endif 
-            
-        }else{
-            sem_post(&(mem->sem_aux_variables));
-        }
-        
-
-        #ifdef __PRINT_PROCESO
-            printf("Intentando entrar en la seccion critica\n");
-        #endif 
-
-        sem_wait(&(mem->sem_paso_pagos_anulaciones)); // Nos dejan entrar en la SC
-
-        // SECCIÓN CRÍTICA
-        #ifdef __PRINT_SC
-
-            seccionCritica();
-        #endif 
-        // FIN SECCIÓN CRÍTICA
+    sem_wait(&(mem->sem_aux_variables));
 
 
-        sem_wait(&(mem->sem_aux_variables));
-        mem->pend_pagos_anulaciones --;
+    mem->pend_pagos_anulaciones ++;
+    
+    if (mem->prioridad_max_enviada < PAGOS_ANULACIONES && (mem->tenemos_SC == 0 || mem->n_consultas > 0)){
+        mem->quiero = 1;
+        mem->prioridad_max_enviada = PAGOS_ANULACIONES;
         sem_post(&(mem->sem_aux_variables));
-
-        siguiente();
-
+        enviar_tickets(PAGOS_ANULACIONES);
         #ifdef __PRINT_PROCESO
-            printf("Fin pagos\n\n");
-        #endif
-        if (detener == 1){
-            exit(0);
-        }
+            printf("La prioridad enviada mas baja es menor que pagos o anulaciones\n");
+        #endif 
         
+    }else{
+        sem_post(&(mem->sem_aux_variables));
     }
+    
+
+    #ifdef __PRINT_PROCESO
+        printf("Intentando entrar en la seccion critica\n");
+    #endif 
+
+    sem_wait(&(mem->sem_paso_pagos_anulaciones)); // Nos dejan entrar en la SC
+
+    // SECCIÓN CRÍTICA
+    #ifdef __PRINT_SC
+
+        seccionCritica();
+    #endif 
+    // FIN SECCIÓN CRÍTICA
+
+
+    sem_wait(&(mem->sem_aux_variables));
+    mem->pend_pagos_anulaciones --;
+    sem_post(&(mem->sem_aux_variables));
+
+    siguiente();
+
+    #ifdef __PRINT_PROCESO
+        printf("Fin pagos\n\n");
+    #endif
+    
+    
     return 0;
 }
 
-void catch_ctrl_c(int sig){
-    detener = 1;
-}
+

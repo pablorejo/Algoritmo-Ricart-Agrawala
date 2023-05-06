@@ -84,10 +84,10 @@ typedef struct
 
 
 
-#define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
-#define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
-#define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
-#define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
+// #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
+// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
+// #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
+// #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
 #define CARPETA "/home/pio"
 
@@ -112,7 +112,6 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade);
 int msg_tickets_id;
 int memoria_id;
 memoria_compartida *mem;
-int detener; // Para detener los procesos normales
 
 #define PROCESO_SYNC 1
 
@@ -133,8 +132,9 @@ void enviar_tickets(int pri){
     msg_tick.prioridad = pri;
 
 
-
-    printf("\nEnviando tickets\n");    
+    #ifdef __PRINT_PROCESO
+        printf("\nEnviando tickets\n");    
+    #endif
     for (int i = 0; i < mem->n_nodos; i++)
     {
         if (mem->id_nodos[i] != mem->mi_id){
@@ -177,7 +177,6 @@ void siguiente(){
                 sem_post(&(mem->sem_aux_variables));
                 enviar_acks();// No dejamos pasar a mas procesos de pagos y hacemos que se envien los ack
                 enviar_tickets(PAGOS_ANULACIONES);
-                printf("Enviando tickets");
                 
             }else {
                 mem->intentos --;
@@ -188,7 +187,6 @@ void siguiente(){
             mem->intentos = N_MAX_INTENTOS;
             sem_post(&(mem->sem_aux_variables));
             sem_post(&(mem->sem_paso_pagos_anulaciones)); // Dejamos pasar a otro proceso de pagos
-            printf("\nPagos en el nodo sin pagos pend en otros nodos\n");
         }
     }else if (mem->nodos_pend_pagos_anulaciones > 0 && mem->n_consultas == 0){
         mem->intentos = N_MAX_INTENTOS;
@@ -208,7 +206,6 @@ void siguiente(){
         enviar_acks();// No dejamos pasar a mas procesos;
 
      }else if (mem->pend_administracion_reservas > 0 && mem->n_consultas == 0){
-        printf("pend_administracion_reservas > 0\n");
         if (mem->nodos_pend_administracion_reservas){
             if (mem->intentos == 0){
                 mem->tenemos_SC = 0;
@@ -227,7 +224,6 @@ void siguiente(){
             sem_post(&(mem->sem_paso_administracion_reservas)); // Dejamos pasar a otro proceso de pagos
         }
     }else if (mem->nodos_pend_administracion_reservas > 0 && mem->n_consultas == 0){
-        printf("nodos_pend_administracion_reservas > 0\n");
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
         if(mem->pend_consultas > 0){
@@ -252,7 +248,6 @@ void siguiente(){
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
             mem->tenemos_SC = 0;
-            printf("No hay procesos pendientes en el nodo\n");
         }
 
         if (mem->nodos_pend_consultas>0){
@@ -262,10 +257,11 @@ void siguiente(){
             sem_post(&(mem->sem_aux_variables));
         }
         
-        printf("\nNo hay nada\n");
     }
 
-    printf("Fin siguiente\n\n");
+    #ifdef __PRINT_PROCESO
+        printf("Fin siguiente\n\n");
+    #endif // DEBUG
 }
 
 void seccionCritica(){
@@ -290,23 +286,34 @@ void reset_pri(){
 
 void enviar_acks(){
 
-    printf("Vamos a enviar ACKs\n");
+
+    #ifdef __PRINT_PROCESO
+        printf("Vamos a enviar ACKs\n");
+    #endif
     sem_wait(&(mem->sem_aux_variables));
     if (mem->quiero == 0){
         ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
         ack(mem->id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
         ack(mem->id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-        printf("Quiero = 0");
+        #ifdef __PRINT_PROCESO
+            printf("Quiero = 0");
+        #endif
     }else{
         if (mem->nodos_pend_pagos_anulaciones > 0){
             ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
-            printf("Enviando ack a los nodos de tipo pagos o anulaciones\n");
+            #ifdef __PRINT_PROCESO
+                printf("Enviando ack a los nodos de tipo pagos o anulaciones\n");
+            #endif
         }else if(mem->nodos_pend_administracion_reservas > 0){
             ack(mem->id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
-            printf("Enviando ack a los nodos de tipo administracion o reservas\n");
+            #ifdef __PRINT_PROCESO
+                printf("Enviando ack a los nodos de tipo administracion o reservas\n");
+            #endif
         }else if(mem->nodos_pend_consultas > 0){
             ack(mem->id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-            printf("Enviando ack a los nodos de tipo consultas\n");
+            #ifdef __PRINT_PROCESO
+                printf("Enviando ack a los nodos de tipo consultas\n");
+            #endif
         }
     }
 
