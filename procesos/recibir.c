@@ -11,12 +11,6 @@ int  ctrl_c = 0;
 int num_pend_p_a = 0,num_pend_a_r = 0;
 
 
-
-
-
-
-
-
 int max_intentos = N_MAX_INTENTOS;
 
 
@@ -24,7 +18,6 @@ int max_intentos = N_MAX_INTENTOS;
 sem_t sem_ctrl_c; // semaforo de paso para realizar el control c
 pthread_t thread_enviar; 
 pthread_t thread_ctrl_c;
-
 
 
 void recibir();
@@ -140,14 +133,6 @@ int main(int argc, char const *argv[])
     recibir();
     return 0;
 }
-
-
-
-
-
-
-
-
 
 
 

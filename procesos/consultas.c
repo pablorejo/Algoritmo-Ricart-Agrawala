@@ -57,7 +57,6 @@ int main(int argc, char const *argv[])
 
 
     ///////// Aqui empieza el programa ////////////////
-    while (1){
         // Quiero entrar en la sección críticia
         // Compruebo que no hay procesos prioritários intentando entrar.
         
@@ -154,7 +153,7 @@ int main(int argc, char const *argv[])
         #endif
         
         
-    }
+    
     return 0;
 }
 

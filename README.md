@@ -8,6 +8,8 @@
   - [ADMINISTRACIÓN Y RESERVAS](#administración-y-reservas)
   - [CONSULTAS](#consultas)
   - [BINARIOS](#binarios)
+- [PRUEBAS](#pruebas)
+  - [Ejemplo](#ejemplo)
 # Algoritmo-Ricart-Agrawala
 
 En esta práctica hablaremos sobre el algoritmo `Ricart-Agrawala` para proteger secciones seciones críticas de procesos que están distribuidos
@@ -71,3 +73,17 @@ En los binarios si que tendremos los ejecutables de los distintos procesos que s
 ```bash
 ./ejecutar.sh
 ```
+
+
+# PRUEBAS
+Las pruebas estan en el directori de pruebas donde podemos encontrar el script [X_procesos_Y_nodos.sh](pruebas/X_procesos_Y_nodos.sh) con el que podremos ejecutar X proceso por cada nodo y definir Y nodos
+
+## Ejemplo
+```bash
+cd pruebas
+./X_procesos_Y_nodos.sh 5 4
+```
+
+En este ejemplo hacemos que se ejecuten 5 procesos por cada nodo teniendo 4 nodos en el sistema
+
+
