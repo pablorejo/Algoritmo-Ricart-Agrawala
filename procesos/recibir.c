@@ -177,6 +177,17 @@ void recibir() {
         // asignamos el valor maximo a ticket maximo
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
         
+        printf("mem->quiero = %i\n",mem->quiero);
+        printf("msg_recibir.ticket_origen = %i\n",msg_recibir.ticket_origen);
+        printf("mem->mi_ticket = %i\n",mem->mi_ticket);
+        printf("msg_recibir.id_origen  = %i\n",msg_recibir.id_origen);
+
+        printf("mem->mi_id = %li\n",mem->mi_id);
+        printf("msg_recibir.prioridad = %i\n",msg_recibir.prioridad);
+
+        printf("mem->prioridad_max_enviada = %i\n",mem->prioridad_max_enviada);
+        printf("mem->n_consultas = %i\n",mem->n_consultas);
+        printf("mem->tenemos_SC = %i\n",mem->tenemos_SC);
 
         if  (
                     (
@@ -187,7 +198,8 @@ void recibir() {
                             && msg_recibir.id_origen < mem->mi_id
                             )
                         || msg_recibir.prioridad > mem->prioridad_max_enviada // En el caso de que la prioridad recivida sea mayor que la prioridad maxima nuestra enviada
-                        || mem->n_consultas > 0 // Comprobamos si se estan ejecutando consultas
+                        // || mem->n_consultas > 0 // Comprobamos si se estan ejecutando consultas
+                        || (mem->prioridad_max_enviada == msg_recibir.prioridad && mem->prioridad_max_enviada == CONSULTAS)
                     )
                 && 
                     (msg_recibir.ticket_origen != ACK)

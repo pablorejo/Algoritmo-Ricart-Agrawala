@@ -120,7 +120,7 @@ int main(int argc, char const *argv[])
 
         sem_wait(&(mem->sem_aux_variables)); 
         mem->n_consultas ++; 
-        if ((mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0 && mem->nodos_pend_pagos_anulaciones == 0 && mem->nodos_pend_administracion_reservas == 0) && mem->n_consultas < mem->pend_consultas){
+        if ((mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0 && mem->nodos_pend_pagos_anulaciones == 0 && mem->nodos_pend_administracion_reservas == 0) && mem->n_consultas <= mem->pend_consultas){
             sem_post(&(mem->sem_aux_variables)); 
             sem_post(&(mem->sem_ctrl_paso_consultas)); // En caso de que no haya procesos prioritarios queriendo entrar y que los otros procesos 
         }else{
