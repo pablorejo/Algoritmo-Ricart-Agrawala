@@ -176,7 +176,7 @@ void recibir() {
         
         // asignamos el valor maximo a ticket maximo
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
-        mem->mi_ticket = mem->max_ticket +1;
+        
 
         if  (
                     (
