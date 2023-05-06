@@ -90,16 +90,29 @@ int main(int argc, char const *argv[])
             printf("Intentando entrar en la seccion critica\n");
         #endif 
 
-
         sem_wait(&(mem->sem_aux_variables)); 
+        printf("valor de la variable esperando consultas %i\n",mem->esperando_consultas);
         // Aqui podemos porner otro tipo de semaforo
+        
         if (mem->esperando_consultas == 0){ // Comprobamos que no estamos esperando ya una consulta
+            mem->esperando_consultas ++;
+            #ifdef __PRINT_PROCESO
+                printf("Soy el primer proceso de consultas\n");
+            #endif 
             
-            mem->esperando_consultas = 1;
-            sem_post(&(mem->sem_aux_variables)); 
+            mem->esperando = 1;
+            sem_post(&(mem->sem_aux_variables));
             sem_wait(&(mem->sem_paso_consultas));
+
+            sem_wait(&(mem->sem_aux_variables));
+            mem->esperando = 0;
+            sem_post(&(mem->sem_aux_variables));    
             
         }else{ // Si ya estamos esperando por consultas esperamos a que la primera que esta esperando nos deje entrar
+            #ifdef __PRINT_PROCESO
+                printf("NO soy el primer proceso de consultas\n");
+            #endif 
+            mem->esperando_consultas ++;
             sem_post(&(mem->sem_aux_variables)); 
             sem_wait(&(mem->sem_ctrl_paso_consultas));
         }
@@ -107,16 +120,14 @@ int main(int argc, char const *argv[])
 
         sem_wait(&(mem->sem_aux_variables)); 
         mem->n_consultas ++; 
-        if ((mem->pend_pagos_anulaciones > 0 || mem->pend_administracion_reservas > 0 || mem->nodos_pend_pagos_anulaciones > 0 || mem->nodos_pend_administracion_reservas > 0 ) && mem->n_consultas < mem->pend_consultas){
+        if ((mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0 && mem->nodos_pend_pagos_anulaciones == 0 && mem->nodos_pend_administracion_reservas == 0) && mem->n_consultas < mem->pend_consultas){
             sem_post(&(mem->sem_aux_variables)); 
-            sem_post(&(mem->sem_ctrl_paso_consultas));
-            sem_post(&(mem->sem_pro_n_consultas)); // Dara paso a otros que quieran entrar en la SC
+            sem_post(&(mem->sem_ctrl_paso_consultas)); // En caso de que no haya procesos prioritarios queriendo entrar y que los otros procesos 
         }else{
             sem_post(&(mem->sem_aux_variables)); 
         }
 
-            
-
+        
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
             seccionCritica();
@@ -128,8 +139,9 @@ int main(int argc, char const *argv[])
         mem->pend_consultas --;
 
         mem->n_consultas --;
+        mem->esperando_consultas --;
         if (mem->n_consultas == 0){
-            mem->esperando_consultas = 0;
+            
             mem->prioridad_max_enviada = 0;
             sem_post(&(mem->sem_aux_variables));
             siguiente();

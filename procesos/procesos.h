@@ -56,7 +56,7 @@ typedef struct
     int tenemos_SC; // Variable para comprovar si nuestro nodo tiene la seccion critica
 
     // Para las consultas
-    int n_consultas, esperando_consultas; // Saber cuantas consultas están en SC;
+    int n_consultas, esperando_consultas, esperando; // Saber cuantas consultas están en SC;
     sem_t sem_pro_n_consultas, sem_ctrl_paso_consultas;
 
     //// Para los nodos
@@ -202,6 +202,7 @@ void siguiente(){
         }else {
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
+            
             sem_post(&(mem->sem_aux_variables));
         }
         enviar_acks();// No dejamos pasar a mas procesos;
@@ -240,7 +241,13 @@ void siguiente(){
         enviar_acks();
     }else{
         if (mem->pend_consultas > 0){
-            sem_post(&(mem->sem_paso_consultas));
+            if (mem->esperando == 1)
+            {
+                sem_post(&(mem->sem_paso_consultas));
+            }else{
+                sem_post(&(mem->sem_ctrl_paso_consultas));
+            }
+            mem->prioridad_max_enviada = CONSULTAS;
         }else{
             mem->prioridad_max_enviada = 0;
             mem->quiero = 0;
@@ -249,9 +256,12 @@ void siguiente(){
         }
 
         if (mem->nodos_pend_consultas>0){
+            sem_post(&(mem->sem_aux_variables));
             enviar_acks();
+        }else{
+            sem_post(&(mem->sem_aux_variables));
         }
-        sem_post(&(mem->sem_aux_variables));
+        
         printf("\nNo hay nada\n");
     }
 

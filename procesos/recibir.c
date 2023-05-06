@@ -97,7 +97,7 @@ int main(int argc, char const *argv[])
     mem->prioridad_max_enviada = 0;
     sem_init(&(mem->sem_mutex),1,1); // Semaforo de exclusion mutua intra nodos
 
-    mem->n_consultas = 0, mem->esperando_consultas = 0;
+    mem->n_consultas = 0; mem->esperando_consultas = 0; mem->esperando = 0;
     sem_init(&(mem->sem_pro_n_consultas),1,1);// Semaforo para protejer la variable conpartida de n_consultas
     sem_init(&(mem->sem_ctrl_paso_consultas),1,0);
 
@@ -178,10 +178,6 @@ void recibir() {
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
         mem->mi_ticket = mem->max_ticket +1;
 
-
-        
-        
-
         if  (
                     (
                            mem->quiero == 0 
@@ -196,7 +192,7 @@ void recibir() {
                 && 
                     (msg_recibir.ticket_origen != ACK)
                 && (msg_recibir.prioridad >= mem->prioridad_max_enviada )
-                && (mem->tenemos_SC == 0 || mem->prioridad_max_enviada == CONSULTAS) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
+                && (mem->tenemos_SC == 0 || mem->prioridad_max_enviada == msg_recibir.prioridad) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
             )
             {
             // En caso de que no queramos enviar un ticket quiero = 0
