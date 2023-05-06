@@ -29,8 +29,9 @@ int main(int argc, char const *argv[])
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
     
+    #ifdef __BUCLE
     signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
-
+    #endif
 
     // key_t key = ftok("../procesos_bin",1);
     key_t key = ftok(CARPETA,1);
@@ -118,6 +119,9 @@ int main(int argc, char const *argv[])
     return 0;
 }
 
+
+#ifdef __BUCLE
 void catch_ctrl_c(int sig){
     detener = 1;
 }
+#endif
