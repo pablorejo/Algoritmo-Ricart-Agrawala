@@ -133,8 +133,9 @@ void enviar_tickets(int pri){
     msg_tick.prioridad = pri;
 
 
-
-    printf("\nEnviando tickets\n");    
+    #ifdef __PRINT_RECIBIR
+        printf("\nEnviando tickets de prioridad %i\n",pri);    
+    #endif
     for (int i = 0; i < mem->n_nodos; i++)
     {
         if (mem->id_nodos[i] != mem->mi_id){
@@ -296,7 +297,7 @@ void enviar_acks(){
         ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
         ack(mem->id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
         ack(mem->id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
-        printf("Quiero = 0");
+        printf("Quiero = 0\n");
     }else{
         if (mem->nodos_pend_pagos_anulaciones > 0){
             ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);

@@ -64,13 +64,17 @@ int main(int argc, char const *argv[])
         // Compruebo que no hay procesos prioritários intentando entrar.
         
         #ifdef __PRINT_PROCESO
-            printf("Proceso de pagos en ejecucion\n");
+            printf("Proceso de adminsitracion en ejecucion\n");
         #endif 
 
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas ++;
-        
-        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS && mem->tenemos_SC == 0){
+        printf("prioridad max enviada %i\n",mem->prioridad_max_enviada);
+        printf("tenemos sc %i\n",mem->tenemos_SC);
+        printf("n_consulas %i\n",mem->n_consultas);
+
+
+        if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS && (mem->tenemos_SC == 0 || mem->n_consultas > 0)){
             mem->quiero = 1;
             mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
             sem_post(&(mem->sem_aux_variables));
@@ -79,10 +83,12 @@ int main(int argc, char const *argv[])
                 printf("La prioridad enviada mas baja es menor que administracion o reservas\n");
             #endif 
             
+            
         }else{
             sem_post(&(mem->sem_aux_variables));
         }
-        
+
+       
 
         #ifdef __PRINT_PROCESO
             printf("Intentando entrar en la seccion critica\n");
@@ -104,7 +110,7 @@ int main(int argc, char const *argv[])
         siguiente();
 
         #ifdef __PRINT_PROCESO
-            printf("Fin pagos\n\n");
+            printf("Fin administracion\n\n");
         #endif
         
         if (detener == 1){

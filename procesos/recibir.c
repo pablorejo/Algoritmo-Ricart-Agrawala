@@ -188,11 +188,11 @@ void recibir() {
                             )
                         || msg_recibir.prioridad > mem->prioridad_max_enviada // En el caso de que la prioridad recivida sea mayor que la prioridad maxima nuestra enviada
                         || mem->n_consultas > 0 // Comprobamos si se estan ejecutando consultas
-                    ) 
+                    )
                 && 
                     (msg_recibir.ticket_origen != ACK)
                 && (msg_recibir.prioridad >= mem->prioridad_max_enviada )
-                && (mem->tenemos_SC == 0 || mem->prioridad_max_enviada == msg_recibir.prioridad) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
+                && (mem->tenemos_SC == 0 || (mem->prioridad_max_enviada == msg_recibir.prioridad && mem->prioridad_max_enviada == CONSULTAS)) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
             )
             {
             // En caso de que no queramos enviar un ticket quiero = 0
@@ -246,19 +246,25 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
-                printf("PAGOS_ANULACIONES\n");
+                #ifdef __PRINT_RECIBIR
+                    printf("PAGOS_ANULACIONES\n");
+                #endif
                 mem->ack_pend_pagos_anulaciones--;
                 if (mem->ack_pend_pagos_anulaciones == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_pagos_anulaciones));
-                    printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
+                    #ifdef __PRINT_RECIBIR
+                        printf("Dejamos que el proceso de pagos o anulaciones pueda entrar\n");
+                    #endif
                 }
                 
                 break;
             case ADMINISTRACION_RESERVAS:
-                printf("ADMINISTRACION_RESERVAS\n");
+                #ifdef __PRINT_RECIBIR
+                    printf("ADMINISTRACION_RESERVAS\n");
+                #endif
 
                 mem->ack_pend_administracion_reservas--;
                 if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0)
@@ -266,18 +272,24 @@ void recibir() {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_administracion_reservas));
-                    printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
+                    #ifdef __PRINT_RECIBIR
+                        printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
+                    #endif
                 }
                 break;
             case CONSULTAS:
-                printf("CONSULTAS");
+                #ifdef __PRINT_RECIBIR
+                    printf("CONSULTAS\n");
+                #endif
                 mem->ack_pend_consultas--;
                 if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0)
                 {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
                     sem_post(&(mem->sem_paso_consultas));
-                    printf("Dejamos que el proceso de consultas pueda entrar\n");
+                    #ifdef __PRINT_RECIBIR
+                        printf("Dejamos que el proceso de consultas pueda entrar\n");
+                    #endif
                 }
                 break;
             default:
