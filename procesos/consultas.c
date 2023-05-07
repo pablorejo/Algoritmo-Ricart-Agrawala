@@ -167,15 +167,15 @@ int main(int argc, char const *argv[])
         #ifdef __RECABAR_DATOS
         end_time = clock();
         // Imprimir el tiempo que tarda en ejecutarse :)
-            sem_wait(&(mem->sem_elapse_pagos_anulaciones));
-            if (mem->elapse_time_pagos_anulaciones > N*N){
+            sem_wait(&(mem->sem_elapse_consultas));
+            if (mem->num_elapse_consultas > N*N){
                 printf("Terminando hemos superado el tamaño maximo del array");
                 exit(0);
             }
             elapsed_time = (double)(end_time - start_time) /CLOCKS_PER_SEC;
-            mem->elapse_time_pagos_anulaciones[mem->num_elapse_pagos_anulaciones] = elapsed_time;
-            mem->elapse_time_pagos_anulaciones ++;
-            sem_post(&(mem->sem_elapse_pagos_anulaciones));
+            mem->elapse_time_consultas[mem->num_elapse_consultas] = elapsed_time;
+            mem->num_elapse_consultas ++;
+            sem_post(&(mem->sem_elapse_consultas));
         #endif // DEBUG
 
 

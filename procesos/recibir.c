@@ -379,17 +379,17 @@ void* fun_ctrl_c(void *args) {
         sem_wait(&(mem->sem_elapse_pagos_anulaciones));
 
         char nombre_archivo[100];
-        sprintf(nombre_archivo, "datos_nodo_%d_pagos_anulacioens.txt", mem->mi_id); 
+        sprintf(nombre_archivo, "datos_nodo_%ld_pagos_anulacioens.txt", mem->mi_id); 
         FILE *archivo_pagos;
         archivo_pagos = fopen(nombre_archivo, "w");
 
         if (archivo_pagos == NULL) { // Verificar que el archivo se abrió correctamente
             printf("No se pudo abrir el archivo.\n");
-            return 1;
+            return 0;
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
-            fprintf(archivo_pagos, "%d\n", datos[i]);
+            fprintf(archivo_pagos, "%f\n", mem->elapse_time_pagos_anulaciones[i]);
         }
         fclose(archivo_pagos); // Cerrar el archivo
 
@@ -400,17 +400,17 @@ void* fun_ctrl_c(void *args) {
 
         sem_wait(&(mem->sem_elapse_administracion_reservas));
 
-        sprintf(nombre_archivo, "datos_nodo_%d_administracion_reservas.txt", mem->mi_id); 
+        sprintf(nombre_archivo, "datos_nodo_%ld_administracion_reservas.txt", mem->mi_id); 
         FILE *archivo_reservas;
         archivo_reservas = fopen(nombre_archivo, "w");
 
         if (archivo_reservas == NULL) { // Verificar que el archivo se abrió correctamente
             printf("No se pudo abrir el archivo.\n");
-            return 1;
+            return 0;
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
-            fprintf(archivo_reservas, "%d\n", datos[i]);
+            fprintf(archivo_reservas, "%f\n", mem->elapse_time_administracion_reservas[i]);
         }
         fclose(archivo_reservas); // Cerrar el archivo
 
@@ -421,17 +421,17 @@ void* fun_ctrl_c(void *args) {
 
         sem_wait(&(mem->sem_elapse_consultas));
 
-        sprintf(nombre_archivo, "datos_nodo_%d_consultas.txt", mem->mi_id); 
+        sprintf(nombre_archivo, "datos_nodo_%ld_consultas.txt", mem->mi_id); 
         FILE *archivo_consultas;
-        archivo_reservas = fopen(nombre_archivo, "w");
+        archivo_consultas = fopen(nombre_archivo, "w");
 
         if (archivo_consultas == NULL) { // Verificar que el archivo se abrió correctamente
             printf("No se pudo abrir el archivo.\n");
-            return 1;
+            return 0;
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
-            fprintf(archivo_consultas, "%d\n", datos[i]);
+            fprintf(archivo_consultas, "%f\n", mem->elapse_time_consultas[i]);
         }
         fclose(archivo_consultas); // Cerrar el archivo
 
