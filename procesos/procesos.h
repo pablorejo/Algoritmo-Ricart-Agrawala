@@ -19,7 +19,31 @@
 
 #define ID_NODO_CONTROLADOR 1
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
+#define SLEEP 0 // Tiempo de espera para poder ver bien lo que hace
 
+
+
+// #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
+// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
+// #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
+// #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
+// #define __BUCLE // Para que haga los procesos en bucle
+#define __RECABAR_DATOS // Para que guarde los datos en ficheros
+
+#define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
+#define CARPETA "/home/pio"
+
+// Prioridades de los procesos
+// Cuanto mayor sea el numero mas prioridad tendra
+#define PAGOS_ANULACIONES 5
+#define ADMINISTRACION_RESERVAS 3
+#define CONSULTAS 1
+
+
+// definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
+#define N_MAX_INTENTOS 3
+
+// #define PROCESO_SYNC 1 // No lo estamos usando suponemos nodos estáticos
 
 typedef struct 
 {
@@ -65,6 +89,20 @@ typedef struct
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
     
 
+
+    // Para hacer las graficas
+
+    #ifdef __RECABAR_DATOS
+        double elapse_time_pagos_anulaciones[N*N]; // Array que contendrá todos los tiempos de los procesos de pagos y anulaciones
+        double elapse_time_administracion_reservas[N*N]; // Array que contendrá todos los tiempos de los procesos de administracion y reservas
+        double elapse_time_consultas[N*N]; // Array que contendrá todos los tiempos de los procesos de pagos y anulaciones
+
+        sem_t sem_elapse_pagos_anulaciones, sem_elapse_administracion_reservas, sem_elapse_consultas;
+        int num_elapse_pagos_anulaciones, num_elapse_administracion_reservas, num_elapse_consultas;
+    #endif // DEBUG
+
+
+
     // sem_t sem_sync_enviar_ack;
     // sem_t sem_sync_siguiente; 
     // Fin memória compartida
@@ -81,29 +119,9 @@ typedef struct
 
 
 
-#define SLEEP 0 // Tiempo de espera para poder ver bien lo que hace
 
 
 
-// #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
-// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
-// #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
-// #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
-// #define __BUCLE // Para que haga los procesos en bucle
-
-
-#define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
-#define CARPETA "/home/pio"
-
-// Prioridades de los procesos
-// Cuanto mayor sea el numero mas prioridad tendra
-#define PAGOS_ANULACIONES 5
-#define ADMINISTRACION_RESERVAS 3
-#define CONSULTAS 1
-
-
-// definimos el numero maximo de ejecuciones que se pueden hacer de una misma prioridad en un nodo si hay nodos pidiendo con la misma prioridad
-#define N_MAX_INTENTOS 3
 
 void enviar_tickets(int pri);
 void siguiente();
@@ -118,7 +136,7 @@ int memoria_id;
 memoria_compartida *mem;
 int detener; // Para detener los procesos normales
 
-#define PROCESO_SYNC 1
+
 
 
 

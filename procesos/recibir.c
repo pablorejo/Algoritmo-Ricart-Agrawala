@@ -119,6 +119,13 @@ int main(int argc, char const *argv[])
     sem_init(&(mem->sem_aux_variables),1,1);
 
 
+    // Para recabar datos
+    #ifdef __RECABAR_DATOS
+        sem_init(&(mem->sem_elapse_pagos_anulaciones),1,1); sem_init(&(mem->sem_elapse_administracion_reservas),1,1); sem_init(&(mem->sem_elapse_consultas),1,1);
+        mem->num_elapse_pagos_anulaciones = 0; mem->num_elapse_administracion_reservas = 0; mem->num_elapse_consultas = 0;
+    #endif // DEBUG
+
+
 
     #ifdef __PRINT_RECIBIR
     printf("Key 1: %i e id del buzón %i\nID de la memoria compartida es %i\n",key,msg_tickets_id,memoria_id);
@@ -191,7 +198,7 @@ void recibir() {
         printf("mem->n_consultas = %i\n",mem->n_consultas);
         printf("mem->tenemos_SC = %i\n",mem->tenemos_SC);
         #endif 
-        
+
         if  (
                     (
                            mem->quiero == 0 
@@ -367,6 +374,70 @@ void* fun_ctrl_c(void *args) {
         exit(-1);
     } 
 
+    #ifdef __RECABAR_DATOS
+    // Aqui es donde guardaremos los ficheros de datos para cada nodo
+        sem_wait(&(mem->sem_elapse_pagos_anulaciones));
+
+        char nombre_archivo[100];
+        sprintf(nombre_archivo, "datos_nodo_%d_pagos_anulacioens.txt", mem->mi_id); 
+        FILE *archivo_pagos;
+        archivo_pagos = fopen(nombre_archivo, "w");
+
+        if (archivo_pagos == NULL) { // Verificar que el archivo se abrió correctamente
+            printf("No se pudo abrir el archivo.\n");
+            return 1;
+        }
+
+        for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+            fprintf(archivo_pagos, "%d\n", datos[i]);
+        }
+        fclose(archivo_pagos); // Cerrar el archivo
+
+        sem_post(&(mem->sem_elapse_pagos_anulaciones));
+
+
+
+
+        sem_wait(&(mem->sem_elapse_administracion_reservas));
+
+        sprintf(nombre_archivo, "datos_nodo_%d_administracion_reservas.txt", mem->mi_id); 
+        FILE *archivo_reservas;
+        archivo_reservas = fopen(nombre_archivo, "w");
+
+        if (archivo_reservas == NULL) { // Verificar que el archivo se abrió correctamente
+            printf("No se pudo abrir el archivo.\n");
+            return 1;
+        }
+
+        for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+            fprintf(archivo_reservas, "%d\n", datos[i]);
+        }
+        fclose(archivo_reservas); // Cerrar el archivo
+
+        sem_post(&(mem->sem_elapse_administracion_reservas));
+
+
+
+
+        sem_wait(&(mem->sem_elapse_consultas));
+
+        sprintf(nombre_archivo, "datos_nodo_%d_consultas.txt", mem->mi_id); 
+        FILE *archivo_consultas;
+        archivo_reservas = fopen(nombre_archivo, "w");
+
+        if (archivo_consultas == NULL) { // Verificar que el archivo se abrió correctamente
+            printf("No se pudo abrir el archivo.\n");
+            return 1;
+        }
+
+        for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+            fprintf(archivo_consultas, "%d\n", datos[i]);
+        }
+        fclose(archivo_consultas); // Cerrar el archivo
+
+        sem_post(&(mem->sem_elapse_consultas));
+
+    #endif // DEBUG
     
     #ifdef __PRINT_CTRL_C
         printf("\n\nEliminado la memoria y el buzon con exito\n\n");
