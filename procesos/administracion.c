@@ -80,9 +80,6 @@ int main(int argc, char const *argv[])
 
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_administracion_reservas ++;
-        printf("prioridad max enviada %i\n",mem->prioridad_max_enviada);
-        printf("tenemos sc %i\n",mem->tenemos_SC);
-        printf("n_consulas %i\n",mem->n_consultas);
 
 
         if (mem->prioridad_max_enviada < ADMINISTRACION_RESERVAS && (mem->tenemos_SC == 0 || mem->n_consultas > 0)){

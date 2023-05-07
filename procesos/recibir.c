@@ -425,22 +425,23 @@ void* fun_ctrl_c(void *args) {
     #ifdef __PRINT_CTRL_C
         printf("\n\n\nEl nodo va ha terminar su ejecución\n");
         printf("Eliminando buzon...\n\n\n\n");
-    #endif // DEBUG
 
     if (msgctl(msg_tickets_id, IPC_RMID, NULL) == -1) {
         perror("Fallo al eliminar el buzon msg_tickets_id con");
         exit(-1);
     }
+    #endif // DEBUG
 
     #ifdef __PRINT_CTRL_C
         printf("\n\n\nEl nodo va ha terminar su ejecución\n");
         printf("Eliminando memoria compartida...\n\n\n\n");
-    #endif // DEBUG
+
 
     if (shmctl(memoria_id, IPC_RMID, NULL) == -1){// Eliminamos la zona de memoria compartida
         perror("Fallo al eliminar el buzon msg_tickets_id con");
         exit(-1);
     } 
+    #endif // DEBUG
 
     
     

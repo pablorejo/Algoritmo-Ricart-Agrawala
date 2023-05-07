@@ -31,9 +31,7 @@ int main(int argc, char const *argv[])
     printf("Soy el proceso con pid %i\n",pid);
     #endif 
 
-    #ifdef __RECABAR_DATOS
-        start_time = clock();
-    #endif
+    
     
     #ifdef __BUCLE
     signal(SIGINT, &catch_ctrl_c); // Para saber cuando detener mi programa
@@ -76,6 +74,10 @@ int main(int argc, char const *argv[])
             printf("Proceso de consultas en ejecucion\n");
         #endif 
 
+        #ifdef __RECABAR_DATOS
+            start_time = clock();
+        #endif
+
         sem_wait(&(mem->sem_aux_variables));
 
         mem->pend_consultas ++;
@@ -101,7 +103,6 @@ int main(int argc, char const *argv[])
         #endif 
 
         sem_wait(&(mem->sem_aux_variables)); 
-        printf("valor de la variable esperando consultas %i\n",mem->esperando_consultas);
         // Aqui podemos porner otro tipo de semaforo
         
         if (mem->esperando_consultas == 0){ // Comprobamos que no estamos esperando ya una consulta
@@ -155,7 +156,9 @@ int main(int argc, char const *argv[])
             mem->prioridad_max_enviada = 0;
             sem_post(&(mem->sem_aux_variables));
             siguiente();
-            printf("Fin de las consultas\n");
+            #ifdef __PRINT_PROCESO
+                printf("Fin de las consultas\n");
+            #endif
         }else{
             sem_post(&(mem->sem_aux_variables));
         }
