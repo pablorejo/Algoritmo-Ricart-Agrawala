@@ -23,12 +23,12 @@
 
 
 
-// #define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
-// #define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
-// #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
-// #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
-// #define __BUCLE // Para que haga los procesos en bucle
-#define __RECABAR_DATOS // Para que guarde los datos en ficheros
+#define __PRINT_RECIBIR // Comentar en caso de que no se quiera imprimir mensajes del proceso recivir
+#define __PRINT_PROCESO // Comentar en caso de que no se quiera imprimir mensajes de los otros procesos
+#define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
+#define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
+#define __BUCLE // Para que haga los procesos en bucle
+// #define __RECABAR_DATOS // Para que guarde los datos en ficheros
 
 #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
 #define CARPETA "/home/pio"
@@ -87,8 +87,8 @@ typedef struct
     //// Para los nodos
     int nodos_pend_pagos_anulaciones, nodos_pend_administracion_reservas, nodos_pend_consultas;
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
-    
-
+    int ack_numero_1_administracio_reservas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos
+    int ack_numero_1_consultas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos o administracion
 
     // Para hacer las graficas
 
@@ -124,7 +124,7 @@ typedef struct
 
 
 void enviar_tickets(int pri);
-void siguiente();
+void dsiguiente();
 void seccionCritica();
 void catch_ctrl_c(int sig); // Esta funcion se encargará de capturar la señal de ctrl+c
 void enviar_acks();
@@ -153,6 +153,13 @@ void enviar_tickets(int pri){
 
     msg_tick.ticket_origen = mem->mi_ticket;
     msg_tick.prioridad = pri;
+
+    if (pri == PAGOS_ANULACIONES){
+        mem->ack_numero_1_administracio_reservas = 0;
+        mem->ack_numero_1_consultas = 0;
+    }else if (pri == ADMINISTRACION_RESERVAS){
+        mem->ack_numero_1_consultas = 0;
+    }
 
 
     #ifdef __PRINT_RECIBIR
@@ -220,6 +227,10 @@ void siguiente(){
     }else if (mem->nodos_pend_pagos_anulaciones > 0 && mem->n_consultas == 0){
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
+        mem->ack_numero_1_administracio_reservas = 0;
+        mem->ack_numero_1_consultas = 0;
+
+
         if (mem->pend_administracion_reservas > 0){
             sem_post(&(mem->sem_aux_variables));
             enviar_tickets(ADMINISTRACION_RESERVAS);
@@ -258,6 +269,7 @@ void siguiente(){
         #ifdef __PRINT_RECIBIR
             printf("nodos_pend_administracion_reservas > 0\n");
         #endif
+        mem->ack_numero_1_consultas = 0;
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
         if(mem->pend_consultas > 0){
@@ -322,11 +334,13 @@ void reset_pri(){
     }
 }
 
-void enviar_acks(){
+void enviar_acks(int pri){
+    // la variable int pri contendra la prioridad que tenemos que mandar
 
     #ifdef __PRINT_RECIBIR
         printf("Vamos a enviar ACKs\n");
     #endif
+
     sem_wait(&(mem->sem_aux_variables));
     if (mem->quiero == 0){
         ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
@@ -336,6 +350,7 @@ void enviar_acks(){
             printf("Quiero = 0\n");
         #endif
     }else{
+        
         if (mem->nodos_pend_pagos_anulaciones > 0){
             ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
             #ifdef __PRINT_RECIBIR
@@ -371,7 +386,7 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade){
         msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
 
         #ifdef __PRINT_RECIBIR
-            printf("Enviando el ack al nodo %li desde el nodo %li con prioridad %i\n",msg_tick.mtype,mem->mi_id,prioridade);
+            printf("Enviando el ack de prioridad %i al nodo %li desde el nodo %li con prioridad %i\n",prioridade,msg_tick.mtype,mem->mi_id,prioridade);
         #endif // DEBUG
     }
     *nodos_pend = 0;

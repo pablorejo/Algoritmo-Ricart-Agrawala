@@ -105,7 +105,8 @@ int main(int argc, char const *argv[])
     mem->nodos_pend_administracion_reservas = 0; mem->nodos_pend_pagos_anulaciones = 0; mem->nodos_pend_consultas = 0;
     mem->ack_pend_administracion_reservas = 0; mem->ack_pend_pagos_anulaciones = 0; mem->ack_pend_consultas = 0;
     mem->intentos = N_MAX_INTENTOS;
-
+    mem->ack_numero_1_administracio_reservas = 0;
+    mem->ack_numero_1_consultas = 0;
 
     // Semaforos de paso 
     sem_init(&(mem->sem_paso_pagos_anulaciones),1,0);
@@ -264,15 +265,18 @@ void recibir() {
 
             // Para entrar en la seccion critica
 
-
+            
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
+                mem->ack_pend_pagos_anulaciones--;
+
                 #ifdef __PRINT_RECIBIR
                     printf("PAGOS_ANULACIONES\n");
+                    printf("ACK pendientes de pagos o anulaiones %i\n",mem->ack_pend_pagos_anulaciones);
                 #endif
-                mem->ack_pend_pagos_anulaciones--;
-                if (mem->ack_pend_pagos_anulaciones == 0 && mem->tenemos_SC == 0)
+
+                if (mem->ack_pend_pagos_anulaciones == 0 && mem->tenemos_SC == 0 && mem->pend_pagos_anulaciones > 0)
                 {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
@@ -284,12 +288,23 @@ void recibir() {
                 
                 break;
             case ADMINISTRACION_RESERVAS:
-                #ifdef __PRINT_RECIBIR
-                    printf("ADMINISTRACION_RESERVAS\n");
-                #endif
+
 
                 mem->ack_pend_administracion_reservas--;
-                if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0)
+
+                if (mem->ack_numero_1_administracio_reservas == 0){
+                    mem->ack_numero_1_administracio_reservas = 1;
+                    sem_post(&(mem->sem_aux_variables));
+                    enviar_tickets(ADMINISTRACION_RESERVAS);
+                    printf("\n\n\nPRIMER ACK RECIVIDO de ADMINISTRACION_RESERVAS\n\n\n");
+                    sem_wait(&(mem->sem_aux_variables));
+                }
+
+                #ifdef __PRINT_RECIBIR
+                    printf("ADMINISTRACION_RESERVAS\n");
+                    printf("ACK pendientes de adminsitracion o reservas %i\n",mem->ack_pend_administracion_reservas);
+                #endif
+                if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0 && mem->pend_administracion_reservas > 0)
                 {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
@@ -298,13 +313,30 @@ void recibir() {
                         printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
                     #endif
                 }
+                
                 break;
             case CONSULTAS:
+
+
+                mem->ack_pend_consultas--;
+
+                if (mem->ack_numero_1_consultas == 0){
+                    mem->ack_numero_1_consultas = 1;
+                    sem_post(&(mem->sem_aux_variables));
+
+                    enviar_tickets(CONSULTAS);
+                    printf("\n\n\nPRIMER ACK RECIVIDO de CONSULTAS\n\n\n");
+                    sem_wait(&(mem->sem_aux_variables));
+
+                }
+
+
                 #ifdef __PRINT_RECIBIR
                     printf("CONSULTAS\n");
+                    printf("ACK pendientes de consultas %i\n",mem->ack_pend_consultas);
                 #endif
-                mem->ack_pend_consultas--;
-                if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0)
+
+                if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0 && mem->pend_consultas > 0)
                 {
                     mem->tenemos_SC = 1;
                     mem->intentos = N_MAX_INTENTOS;
@@ -313,6 +345,7 @@ void recibir() {
                         printf("Dejamos que el proceso de consultas pueda entrar\n");
                     #endif
                 }
+                
                 break;
             default:
                 break;
@@ -326,10 +359,13 @@ void recibir() {
             switch (msg_recibir.prioridad)
             {
             case PAGOS_ANULACIONES:
+                mem->ack_numero_1_consultas = 0;
+                mem->ack_numero_1_administracio_reservas = 0;
                 mem->id_nodos_pend_pagos_anulaciones[mem->nodos_pend_pagos_anulaciones] = msg_recibir.id_origen;
                 mem->nodos_pend_pagos_anulaciones ++;
                 break;
             case ADMINISTRACION_RESERVAS:
+                mem->ack_numero_1_consultas = 0;
                 mem->id_nodos_pend_administracion_reservas[mem->nodos_pend_administracion_reservas] =  msg_recibir.id_origen;
                 mem->nodos_pend_administracion_reservas ++;
                 break;

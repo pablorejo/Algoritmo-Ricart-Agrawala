@@ -93,6 +93,8 @@ mv Nodos_$2 ../datos
 
 
 cd ..
+
+./media.sh $1
 paplay alert.wav
 
 
