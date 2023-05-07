@@ -16,6 +16,8 @@ do
     for i in $(seq 1 $num_nodos)
     do
         ./pagos $i &
+        ./administracion $i &
+        ./consultas $i &
     done
 done
 

@@ -370,7 +370,6 @@ void* fun_ctrl_c(void *args) {
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
-            printf("Dato = %f\n",mem->elapse_time_pagos_anulaciones[i]);
             fprintf(archivo_pagos, "%f\n", mem->elapse_time_pagos_anulaciones[i]);
         }
         fclose(archivo_pagos); // Cerrar el archivo
