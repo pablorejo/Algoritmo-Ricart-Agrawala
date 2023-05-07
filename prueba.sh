@@ -1,5 +1,4 @@
-
-
+#!/bin/bash
 ./ejecutar.sh #Compilamos el programa y eliminamos lass cosas inecesarias
 
 cd procesos_bin
@@ -39,6 +38,9 @@ fi
 
 pids=$(pgrep -f "recibir")
 
+
+
+
 if [ -z "$pids" ]; then
   echo "No hay procesos en ejecución de los tipos 'pagos', 'administracion', 'anulacion' , 'reservas' o 'consultas'."
 else
@@ -47,10 +49,13 @@ else
 
   # Eliminar los procesos
   echo "ctrl procesos..."
-  kill -SIGINT $pids #Enviamos la señal de que 
+  kill -s SIGINT $pids #Enviamos la señal de que 
 
   echo "Procesos eliminados."
 fi
+
+sleep 2
+mv *.txt ../datos
 
 
 
