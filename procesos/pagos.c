@@ -128,6 +128,7 @@ int main(int argc, char const *argv[])
             elapsed_time = (double)(end_time - start_time) /CLOCKS_PER_SEC;
             mem->elapse_time_pagos_anulaciones[mem->num_elapse_pagos_anulaciones] = elapsed_time;
             mem->num_elapse_pagos_anulaciones ++;
+            printf("dato = %f",elapsed_time);
             sem_post(&(mem->sem_elapse_pagos_anulaciones));
         #endif // DEBUG
 

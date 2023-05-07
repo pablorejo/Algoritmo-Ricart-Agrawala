@@ -354,25 +354,6 @@ void* fun_ctrl_c(void *args) {
 
     sem_wait(&sem_ctrl_c);
 
-    #ifdef __PRINT_CTRL_C
-        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
-        printf("Eliminando buzon...\n\n\n\n");
-    #endif // DEBUG
-
-    if (msgctl(msg_tickets_id, IPC_RMID, NULL) == -1) {
-        perror("Fallo al eliminar el buzon msg_tickets_id con");
-        exit(-1);
-    }
-
-    #ifdef __PRINT_CTRL_C
-        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
-        printf("Eliminando memoria compartida...\n\n\n\n");
-    #endif // DEBUG
-
-    if (shmctl(memoria_id, IPC_RMID, NULL) == -1){// Eliminamos la zona de memoria compartida
-        perror("Fallo al eliminar el buzon msg_tickets_id con");
-        exit(-1);
-    } 
 
     #ifdef __RECABAR_DATOS
     // Aqui es donde guardaremos los ficheros de datos para cada nodo
@@ -389,6 +370,7 @@ void* fun_ctrl_c(void *args) {
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+            printf("Dato = %f\n",mem->elapse_time_pagos_anulaciones[i]);
             fprintf(archivo_pagos, "%f\n", mem->elapse_time_pagos_anulaciones[i]);
         }
         fclose(archivo_pagos); // Cerrar el archivo
@@ -409,7 +391,7 @@ void* fun_ctrl_c(void *args) {
             return 0;
         }
 
-        for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+        for (int i = 0; i < mem->num_elapse_administracion_reservas; i++) {
             fprintf(archivo_reservas, "%f\n", mem->elapse_time_administracion_reservas[i]);
         }
         fclose(archivo_reservas); // Cerrar el archivo
@@ -430,7 +412,7 @@ void* fun_ctrl_c(void *args) {
             return 0;
         }
 
-        for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+        for (int i = 0; i < mem->num_elapse_consultas; i++) {
             fprintf(archivo_consultas, "%f\n", mem->elapse_time_consultas[i]);
         }
         fclose(archivo_consultas); // Cerrar el archivo
@@ -438,6 +420,30 @@ void* fun_ctrl_c(void *args) {
         sem_post(&(mem->sem_elapse_consultas));
 
     #endif // DEBUG
+
+
+
+    #ifdef __PRINT_CTRL_C
+        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
+        printf("Eliminando buzon...\n\n\n\n");
+    #endif // DEBUG
+
+    if (msgctl(msg_tickets_id, IPC_RMID, NULL) == -1) {
+        perror("Fallo al eliminar el buzon msg_tickets_id con");
+        exit(-1);
+    }
+
+    #ifdef __PRINT_CTRL_C
+        printf("\n\n\nEl nodo va ha terminar su ejecución\n");
+        printf("Eliminando memoria compartida...\n\n\n\n");
+    #endif // DEBUG
+
+    if (shmctl(memoria_id, IPC_RMID, NULL) == -1){// Eliminamos la zona de memoria compartida
+        perror("Fallo al eliminar el buzon msg_tickets_id con");
+        exit(-1);
+    } 
+
+    
     
     #ifdef __PRINT_CTRL_C
         printf("\n\nEliminado la memoria y el buzon con exito\n\n");

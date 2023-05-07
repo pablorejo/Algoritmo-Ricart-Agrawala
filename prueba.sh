@@ -46,7 +46,7 @@ else
   echo "$pids"
 
   # Eliminar los procesos
-  echo "Eliminando procesos..."
+  echo "ctrl procesos..."
   kill -SIGINT $pids #Enviamos la señal de que 
 
   echo "Procesos eliminados."
