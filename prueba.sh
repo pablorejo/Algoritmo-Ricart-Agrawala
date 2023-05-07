@@ -13,18 +13,16 @@ do
     ./recibir $i $num_nodos & 
 done
 
-sleep 3
 
 for j in $(seq 1 $num_nodos)
 do 
     
-    for i in $(seq 1 $1)
-    do
-        ./pagos $i &
-        ./administracion $i &
-        ./consultas $j &
-    done
-   
+  for i in $(seq 1 $1)
+  do
+      ./pagos $j &
+      ./administracion $j &
+      ./consultas $j &
+  done
 done
 
 
@@ -35,6 +33,7 @@ for i in {1..60}; do
 done
 echo "] Hecho!"
 
+#Espera a que terminen todos menos los de recibir
 
 
 pids=$(pgrep -f "pagos|administracion|anulaciones|reservas|consultas")
@@ -71,12 +70,7 @@ else
 fi
 
 
-echo -n "Guardando en fichero todo: ["
-for i in {1..60}; do
-  echo -n "#"
-  sleep $4
-done
-echo "] Hecho!"
+wait
 
 
 
