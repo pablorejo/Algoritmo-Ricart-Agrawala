@@ -177,6 +177,8 @@ void recibir() {
         // asignamos el valor maximo a ticket maximo
         if (msg_recibir.ticket_origen > mem->max_ticket){ mem->max_ticket = msg_recibir.ticket_origen; }
         
+
+        #ifdef __PRINT_RECIBIR
         printf("mem->quiero = %i\n",mem->quiero);
         printf("msg_recibir.ticket_origen = %i\n",msg_recibir.ticket_origen);
         printf("mem->mi_ticket = %i\n",mem->mi_ticket);
@@ -188,7 +190,8 @@ void recibir() {
         printf("mem->prioridad_max_enviada = %i\n",mem->prioridad_max_enviada);
         printf("mem->n_consultas = %i\n",mem->n_consultas);
         printf("mem->tenemos_SC = %i\n",mem->tenemos_SC);
-
+        #endif 
+        
         if  (
                     (
                            mem->quiero == 0 

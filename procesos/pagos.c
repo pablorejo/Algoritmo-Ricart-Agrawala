@@ -21,8 +21,9 @@ int main(int argc, char const *argv[])
         keyNodo = atoi(argv[1]); // tiene que ser igual a la id del nodo
     }
 
-    
-    printf("Hola\n");
+    clock_t start_time, end_time;
+    double elapsed_time;
+
     pid = getpid();
 
     #ifdef __PRINT_PROCESO
@@ -66,6 +67,7 @@ int main(int argc, char const *argv[])
             printf("Proceso de pagos en ejecucion 2\n");
         #endif 
 
+        start_time = clock();
         sem_wait(&(mem->sem_aux_variables));
 
 
@@ -94,12 +96,11 @@ int main(int argc, char const *argv[])
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-
             seccionCritica();
         #endif 
         // FIN SECCIÓN CRÍTICA
 
-
+        
         sem_wait(&(mem->sem_aux_variables));
         mem->pend_pagos_anulaciones --;
         sem_post(&(mem->sem_aux_variables));
@@ -109,9 +110,20 @@ int main(int argc, char const *argv[])
         #ifdef __PRINT_PROCESO
             printf("Fin pagos\n\n");
         #endif
+        end_time = clock();
+
+
+        elapsed_time = (double)(end_time - start_time) /CLOCKS_PER_SEC;
+        printf("%f\n",elapsed_time);
+
+
+
+
+        #ifdef __BUCLE 
         if (detener == 1){
             exit(0);
         }
+        #endif
 
     #ifdef __BUCLE 
     }
