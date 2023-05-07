@@ -20,3 +20,38 @@ do
     done
 done
 
+
+pids=$(pgrep -f "pagos|administracion|anulaciones|reservas|consultas")
+
+if [ -z "$pids" ]; then
+  echo "No hay procesos en ejecución de los tipos 'pagos', 'administracion', 'anulacion' , 'reservas' o 'consultas'."
+else
+  echo "Procesos encontrados:"
+  echo "$pids"
+
+  # Eliminar los procesos
+  echo "Eliminando procesos..."
+  kill $pids
+
+  echo "Procesos eliminados."
+fi
+
+
+pids=$(pgrep -f "recibir")
+
+if [ -z "$pids" ]; then
+  echo "No hay procesos en ejecución de los tipos 'pagos', 'administracion', 'anulacion' , 'reservas' o 'consultas'."
+else
+  echo "Procesos encontrados:"
+  echo "$pids"
+
+  # Eliminar los procesos
+  echo "Eliminando procesos..."
+  kill -SIGINT $pids #Enviamos la señal de que 
+
+  echo "Procesos eliminados."
+fi
+
+
+
+
