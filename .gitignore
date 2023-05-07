@@ -1,3 +1,4 @@
 # **.gitignore
 **.vscode
 **procesos_bin
+**datos/*.txt
