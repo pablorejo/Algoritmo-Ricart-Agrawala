@@ -22,8 +22,8 @@ int main(int argc, char const *argv[])
     }
 
     #ifdef  __RECABAR_DATOS
-        clock_t start_time, end_time;
-        double elapsed_time;
+        struct timespec start, end;
+        
     #endif // DEBUG
     
 
@@ -75,7 +75,7 @@ int main(int argc, char const *argv[])
         #endif 
 
         #ifdef __RECABAR_DATOS
-            start_time = clock();
+            clock_gettime(CLOCK_REALTIME, &start);
         #endif
 
         sem_wait(&(mem->sem_aux_variables));
@@ -118,17 +118,26 @@ int main(int argc, char const *argv[])
         siguiente();
 
         #ifdef __RECABAR_DATOS
-        end_time = clock();
-        // Imprimir el tiempo que tarda en ejecutarse :)
-            sem_wait(&(mem->sem_elapse_administracion_reservas));
+            clock_gettime(CLOCK_REALTIME, &end);
+
+            // Imprimir el tiempo que tarda en ejecutarse :)
             if (mem->num_elapse_administracion_reservas > N*N){
                 printf("Terminando hemos superado el tamaño maximo del array");
                 exit(0);
             }
-            elapsed_time = (double)(end_time - start_time) /CLOCKS_PER_SEC;
-            mem->elapse_time_administracion_reservas[mem->num_elapse_administracion_reservas] = elapsed_time;
+            double time_taken = (end.tv_sec - start.tv_sec) * 1e3;
+            time_taken += (end.tv_nsec - start.tv_nsec) / 1e6;
+
+
+            sem_wait(&(mem->sem_elapse_administracion_reservas));
+            mem->elapse_time_administracion_reservas[mem->num_elapse_administracion_reservas] = time_taken;
             mem->num_elapse_administracion_reservas ++;
             sem_post(&(mem->sem_elapse_administracion_reservas));
+
+            #ifdef __PRINT_PROCESO
+                printf("time taken: %f ms\n\n",time_taken);
+            #endif
+            
         #endif // DEBUG
 
         #ifdef __PRINT_PROCESO

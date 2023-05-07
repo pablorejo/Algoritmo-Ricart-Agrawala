@@ -19,7 +19,7 @@
 
 #define ID_NODO_CONTROLADOR 1
 #define N 1000 //Numero maximo de procesos y de nodos en el sistema
-#define SLEEP 0 // Tiempo de espera para poder ver bien lo que hace
+#define SLEEP 1 // Tiempo de espera para poder ver bien lo que hace
 
 
 
@@ -28,7 +28,7 @@
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 #define __BUCLE // Para que haga los procesos en bucle
-// #define __RECABAR_DATOS // Para que guarde los datos en ficheros
+#define __RECABAR_DATOS // Para que guarde los datos en ficheros
 
 #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
 #define CARPETA "/home/pio"
@@ -303,11 +303,11 @@ void siguiente(){
 }
 
 void seccionCritica(){
-    // sleep(SLEEP);
-    // printf("Haciendo la SC\n");
-    // sleep(SLEEP);
-    // printf("Fin de la SC\n");
-    sleep(1);
+    sleep(SLEEP);
+    printf("Haciendo la SC\n");
+    sleep(SLEEP);
+    printf("Fin de la SC\n");
+    sleep(SLEEP);
 }
 
 void reset_pri(){
