@@ -64,7 +64,8 @@ typedef struct
 
     // Arrays de los ids de nodos pendientes
     int id_nodos_pend_pagos_anulaciones[N-1], id_nodos_pend_administracion_reservas[N-1], id_nodos_pend_consultas[N-1];
-    int tickets_pend_pagos_anulaciones[N-1], tickets_pend_administracion_reservas[N-1], tickets_pend_consultas[N-1];
+    int tickets_pend_pagos_anulaciones[N-1], tickets_pend_administracion_reservas[N-1], tickets_pend_consultas[N-1]; // Aqui guardamos los tickets pendientes para comprobar su prioridad
+
     // Memoria compartida
     int quiero;
 
@@ -88,8 +89,8 @@ typedef struct
     //// Para los nodos
     int nodos_pend_pagos_anulaciones, nodos_pend_administracion_reservas, nodos_pend_consultas;
     int ack_pend_pagos_anulaciones, ack_pend_administracion_reservas, ack_pend_consultas;
-    int ack_numero_1_administracio_reservas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos
-    int ack_numero_1_consultas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos o administracion
+    // int ack_numero_1_administracio_reservas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos
+    // int ack_numero_1_consultas; // Este nos servirá para saber si es el primer ack recibido para ese mismo nodo, Se cambiará al enviar pagos o cambiar a pagos o administracion
 
     // Para hacer las graficas
 
@@ -128,8 +129,8 @@ void enviar_tickets(int pri);
 void dsiguiente();
 void seccionCritica();
 void catch_ctrl_c(int sig); // Esta funcion se encargará de capturar la señal de ctrl+c
-void enviar_acks(int nodo);
-void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade, int nodo);
+void enviar_acks();
+void ack(int id_nodos_pend[N-1],int tickets[N-1], int *nodos_pend, int prioridade);
 
 
 int msg_tickets_id;
@@ -158,12 +159,7 @@ void enviar_tickets(int pri){
 
     msg_tick.prioridad = pri;
 
-    if (pri == PAGOS_ANULACIONES){
-        mem->ack_numero_1_administracio_reservas = 0;
-        mem->ack_numero_1_consultas = 0;
-    }else if (pri == ADMINISTRACION_RESERVAS){
-        mem->ack_numero_1_consultas = 0;
-    }
+    
 
 
     #ifdef __PRINT_RECIBIR
@@ -230,8 +226,6 @@ void siguiente(){
     }else if (mem->nodos_pend_pagos_anulaciones > 0 && mem->n_consultas == 0){
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
-        mem->ack_numero_1_administracio_reservas = 0;
-        mem->ack_numero_1_consultas = 0;
 
 
         if (mem->pend_administracion_reservas > 0){
@@ -272,7 +266,6 @@ void siguiente(){
         #ifdef __PRINT_RECIBIR
             printf("nodos_pend_administracion_reservas > 0\n");
         #endif
-        mem->ack_numero_1_consultas = 0;
         mem->intentos = N_MAX_INTENTOS;
         mem->tenemos_SC = 0;
         if(mem->pend_consultas > 0){
@@ -325,19 +318,9 @@ void seccionCritica(){
     sleep(SLEEP);
 }
 
-void reset_pri(){
-    if (mem->pend_pagos_anulaciones > 0){
-        mem->prioridad_max_enviada = PAGOS_ANULACIONES;
-    }else if (mem->pend_administracion_reservas > 0){
-        mem->prioridad_max_enviada = ADMINISTRACION_RESERVAS;
-    }else if (mem->pend_consultas > 0){
-        mem->prioridad_max_enviada = CONSULTAS;
-    }else {
-        mem->prioridad_max_enviada = 0;
-    }
-}
 
-void enviar_acks(int nodo){
+
+void enviar_acks(){
 
     #ifdef __PRINT_RECIBIR
         printf("Vamos a enviar ACKs\n");
@@ -345,26 +328,41 @@ void enviar_acks(int nodo){
 
     sem_wait(&(mem->sem_aux_variables));
     if (mem->quiero == 0){
-        ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES, nodo);
-        ack(mem->id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS, nodo);
-        ack(mem->id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS, nodo);
+        ack(mem->id_nodos_pend_pagos_anulaciones,mem->tickets_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
+        ack(mem->id_nodos_pend_administracion_reservas,mem->tickets_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+        ack(mem->id_nodos_pend_consultas,mem->tickets_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
         #ifdef __PRINT_RECIBIR
             printf("Quiero = 0\n");
         #endif
     }else{
         
         if (mem->nodos_pend_pagos_anulaciones > 0){
-            ack(mem->id_nodos_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES, nodo);
+            ack(mem->id_nodos_pend_pagos_anulaciones,mem->tickets_pend_pagos_anulaciones, &mem->nodos_pend_pagos_anulaciones, PAGOS_ANULACIONES);
             #ifdef __PRINT_RECIBIR
                 printf("Enviando ack a los nodos de tipo pagos o anulaciones\n");
             #endif
+            if (mem->nodos_pend_administracion_reservas > 0 && mem->pend_pagos_anulaciones == 0) 
+            {
+                ack(mem->id_nodos_pend_pagos_anulaciones,mem->tickets_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
+                if(mem->nodos_pend_consultas > 0 && mem->pend_administracion_reservas == 0){
+                    ack(mem->id_nodos_pend_consultas,mem->tickets_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+                }
+            }else if ( mem->nodos_pend_consultas > 0 && mem->pend_administracion_reservas == 0){
+                ack(mem->id_nodos_pend_consultas,mem->tickets_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+            }
+            
+            
         }else if(mem->nodos_pend_administracion_reservas > 0){
-            ack(mem->id_nodos_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS, nodo);
+            ack(mem->id_nodos_pend_administracion_reservas,mem->tickets_pend_administracion_reservas, &mem->nodos_pend_administracion_reservas, ADMINISTRACION_RESERVAS);
             #ifdef __PRINT_RECIBIR
                 printf("Enviando ack a los nodos de tipo administracion o reservas\n");
             #endif  
+            if ( mem->nodos_pend_consultas > 0 && mem->pend_administracion_reservas == 0){
+                ack(mem->id_nodos_pend_consultas,mem->tickets_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
+            }
+
         }else if(mem->nodos_pend_consultas > 0){
-            ack(mem->id_nodos_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS, nodo);
+            ack(mem->id_nodos_pend_consultas,mem->tickets_pend_consultas, &mem->nodos_pend_consultas, CONSULTAS);
             #ifdef __PRINT_RECIBIR
                 printf("Enviando ack a los nodos de tipo consultas\n");
             #endif
@@ -376,7 +374,7 @@ void enviar_acks(int nodo){
 }
 
 // Funcion para enviar los ack a los distintos nodos de una misma prioridad
-void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade, int nodo){
+void ack(int id_nodos_pend[N-1],int tickets[N-1], int *nodos_pend, int prioridade){
     mensaje msg_tick;
     msg_tick.id_origen = mem->mi_id;
     msg_tick.ticket_origen = ACK;
@@ -384,16 +382,16 @@ void ack(int id_nodos_pend[N-1], int *nodos_pend, int prioridade, int nodo){
     
     for (int i = 0; i < *nodos_pend; i++){
         // Enviamos los mensajes que nos quedasen pendientes de enviar
-        if(nodo != id_nodos_pend[i]){
+        if(mem->quiero == 0 || mem->mi_ticket > tickets[i] || (mem->mi_ticket == tickets[i] && mem->mi_id > id_nodos_pend[i])){
+            *nodos_pend = *nodos_pend - 1;
             msg_tick.mtype = id_nodos_pend[i];
             msgsnd(msg_tickets_id, &msg_tick, sizeof(mensaje), 0); //Enviamos el mensaje al nodo origen
-
             #ifdef __PRINT_RECIBIR
                 printf("Enviando el ack de prioridad %i al nodo %li desde el nodo %li con prioridad %i\n",prioridade,msg_tick.mtype,mem->mi_id,prioridade);
             #endif // DEBUG
         }
     }
-    *nodos_pend = 0;
+    
 }
 
 
