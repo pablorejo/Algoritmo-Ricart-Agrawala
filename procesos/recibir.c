@@ -186,17 +186,17 @@ void recibir() {
         
 
         #ifdef __PRINT_RECIBIR
-        printf("mem->quiero = %i\n",mem->quiero);
-        printf("msg_recibir.ticket_origen = %i\n",msg_recibir.ticket_origen);
-        printf("mem->mi_ticket = %i\n",mem->mi_ticket);
-        printf("msg_recibir.id_origen  = %i\n",msg_recibir.id_origen);
+        // printf("mem->quiero = %i\n",mem->quiero);
+        // printf("msg_recibir.ticket_origen = %i\n",msg_recibir.ticket_origen);
+        // printf("mem->mi_ticket = %i\n",mem->mi_ticket);
+        // printf("msg_recibir.id_origen  = %i\n",msg_recibir.id_origen);
 
-        printf("mem->mi_id = %li\n",mem->mi_id);
-        printf("msg_recibir.prioridad = %i\n",msg_recibir.prioridad);
+        // printf("mem->mi_id = %li\n",mem->mi_id);
+        // printf("msg_recibir.prioridad = %i\n",msg_recibir.prioridad);
 
-        printf("mem->prioridad_max_enviada = %i\n",mem->prioridad_max_enviada);
-        printf("mem->n_consultas = %i\n",mem->n_consultas);
-        printf("mem->tenemos_SC = %i\n",mem->tenemos_SC);
+        // printf("mem->prioridad_max_enviada = %i\n",mem->prioridad_max_enviada);
+        // printf("mem->n_consultas = %i\n",mem->n_consultas);
+        // printf("mem->tenemos_SC = %i\n",mem->tenemos_SC);
         #endif 
 
         if  (
@@ -484,5 +484,3 @@ void catch_ctrl_c(int sig)
 {
     sem_post(&sem_ctrl_c);
 }
-
-
