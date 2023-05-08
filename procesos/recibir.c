@@ -394,7 +394,6 @@ void* fun_ctrl_c(void *args) {
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
-            printf("tiempo = %f\n",mem->elapse_time_pagos_anulaciones[i]);
             fprintf(archivo_pagos, "%f\n", mem->elapse_time_pagos_anulaciones[i]);
         }
         fclose(archivo_pagos); // Cerrar el archivo
@@ -443,8 +442,9 @@ void* fun_ctrl_c(void *args) {
 
         sem_post(&(mem->sem_elapse_consultas));
 
-
+        #ifdef __PRINT_CTRL_C
         printf("\n\nFin de la funcion CTRL+C\n\n\n");
+        #endif // DEBUG
 
     #endif // DEBUG
 
