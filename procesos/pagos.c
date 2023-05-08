@@ -111,7 +111,7 @@ int main(int argc, char const *argv[])
         mem->pend_pagos_anulaciones --;
         sem_post(&(mem->sem_aux_variables));
 
-        siguiente();
+        siguiente(PAGOS_ANULACIONES);
 
         #ifdef __PRINT_PROCESO
             printf("Fin pagos\n\n");

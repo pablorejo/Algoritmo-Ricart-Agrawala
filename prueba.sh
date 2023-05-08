@@ -41,7 +41,8 @@ do
     
   for i in $(seq 1 $num_nodos)
   do
-    ./pagos $i & ./pagos $i & ./pagos $i & ./pagos $i & ./pagos $i & ./administracion $i & ./consultas $i &
+    ./pagos $i & 
+    ./administracion $i &
   done
   echo -n "#"
 done

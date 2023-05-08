@@ -154,7 +154,7 @@ int main(int argc, char const *argv[])
             
             mem->prioridad_max_enviada = 0;
             sem_post(&(mem->sem_aux_variables));
-            siguiente();
+            siguiente(ADMINISTRACION_RESERVAS);
             #ifdef __PRINT_PROCESO
                 printf("Fin de las consultas\n");
             #endif

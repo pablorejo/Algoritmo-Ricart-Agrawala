@@ -91,7 +91,6 @@ int main(int argc, char const *argv[])
                 printf("La prioridad enviada mas baja es menor que administracion o reservas\n");
             #endif 
             
-            
         }else{
             sem_post(&(mem->sem_aux_variables));
         }
@@ -106,7 +105,7 @@ int main(int argc, char const *argv[])
 
         // SECCIÓN CRÍTICA
         #ifdef __PRINT_SC
-            seccionCritica();
+            seccionCritica(ADMINISTRACION_RESERVAS);
         #endif 
         // FIN SECCIÓN CRÍTICA
 
@@ -115,7 +114,7 @@ int main(int argc, char const *argv[])
         mem->pend_administracion_reservas --;
         sem_post(&(mem->sem_aux_variables));
 
-        siguiente();
+        siguiente(ADMINISTRACION_RESERVAS);
 
         #ifdef __RECABAR_DATOS
             clock_gettime(CLOCK_REALTIME, &end);
