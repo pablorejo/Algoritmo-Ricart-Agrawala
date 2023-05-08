@@ -26,3 +26,10 @@ cd ..
 
 ./del_procesos.sh
 ./del_mem.sh
+
+
+#eliminamos el buzon
+for i in $(ipcs -q | awk '/ 660 / {print $2}')
+do
+    ipcrm -q $i
+done

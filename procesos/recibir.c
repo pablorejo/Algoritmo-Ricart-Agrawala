@@ -295,8 +295,14 @@ void recibir() {
                 if (mem->ack_numero_1_administracio_reservas == 0){
                     mem->ack_numero_1_administracio_reservas = 1;
                     sem_post(&(mem->sem_aux_variables));
-                    enviar_tickets(ADMINISTRACION_RESERVAS);
-                    printf("\n\n\nPRIMER ACK RECIVIDO de ADMINISTRACION_RESERVAS\n\n\n");
+                    if (mem->pend_administracion_reservas > 0){
+                        enviar_tickets(ADMINISTRACION_RESERVAS);
+                    }
+                    enviar_acks(-1);
+                    #ifdef __PRINT_RECIBIR
+                        printf("\n\n\nPRIMER ACK RECIVIDO de ADMINISTRACION_RESERVAS\n\n\n");
+                    #endif
+
                     sem_wait(&(mem->sem_aux_variables));
                 }
 
@@ -323,28 +329,35 @@ void recibir() {
                 if (mem->ack_numero_1_consultas == 0){
                     mem->ack_numero_1_consultas = 1;
                     sem_post(&(mem->sem_aux_variables));
+                    if (mem->pend_consultas > 0){
+                        enviar_tickets(CONSULTAS);
+                    }
+                    enviar_acks(-1);
 
-                    enviar_tickets(CONSULTAS);
-                    printf("\n\n\nPRIMER ACK RECIVIDO de CONSULTAS\n\n\n");
+                    #ifdef __PRINT_RECIBIR
+                        printf("\n\n\nPRIMER ACK RECIVIDO de CONSULTAS\n\n\n");
+                    #endif
                     sem_wait(&(mem->sem_aux_variables));
 
-                }
+                }else{
 
-
-                #ifdef __PRINT_RECIBIR
-                    printf("CONSULTAS\n");
-                    printf("ACK pendientes de consultas %i\n",mem->ack_pend_consultas);
-                #endif
-
-                if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0 && mem->pend_consultas > 0)
-                {
-                    mem->tenemos_SC = 1;
-                    mem->intentos = N_MAX_INTENTOS;
-                    sem_post(&(mem->sem_paso_consultas));
                     #ifdef __PRINT_RECIBIR
-                        printf("Dejamos que el proceso de consultas pueda entrar\n");
+                        printf("CONSULTAS\n");
+                        printf("ACK pendientes de consultas %i\n",mem->ack_pend_consultas);
                     #endif
+
+                    if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0 && mem->pend_consultas > 0)
+                    {
+                        mem->tenemos_SC = 1;
+                        mem->intentos = N_MAX_INTENTOS;
+                        sem_post(&(mem->sem_paso_consultas));
+                        #ifdef __PRINT_RECIBIR
+                            printf("Dejamos que el proceso de consultas pueda entrar\n");
+                        #endif
+                    }
                 }
+
+
                 
                 break;
             default:
@@ -406,6 +419,7 @@ void* fun_ctrl_c(void *args) {
         }
 
         for (int i = 0; i < mem->num_elapse_pagos_anulaciones; i++) {
+            printf("tiempo = %f\n",mem->elapse_time_pagos_anulaciones[i]);
             fprintf(archivo_pagos, "%f\n", mem->elapse_time_pagos_anulaciones[i]);
         }
         fclose(archivo_pagos); // Cerrar el archivo
@@ -454,6 +468,9 @@ void* fun_ctrl_c(void *args) {
 
         sem_post(&(mem->sem_elapse_consultas));
 
+
+        printf("\n\nFin de la funcion CTRL+C\n\n\n");
+
     #endif // DEBUG
 
 
@@ -492,6 +509,5 @@ void catch_ctrl_c(int sig)
 {
     sem_post(&sem_ctrl_c);
 }
-
 
 
