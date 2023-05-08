@@ -28,7 +28,7 @@
 #define __PRINT_SC // comentar en caso de que no se quiera ver si los proceso estan o no en la sección crítica
 #define __PRINT_CTRL_C // comentar en caso de que no se quiera imprimir mensajes de control de terminar un mensaje
 #define __BUCLE // Para que haga los procesos en bucle
-#define __RECABAR_DATOS // Para que guarde los datos en ficheros
+// #define __RECABAR_DATOS // Para que guarde los datos en ficheros
 
 #define DEBUG // Descomentar en caso de que no se tenga que pasar parametros
 #define CARPETA "/home/pio"

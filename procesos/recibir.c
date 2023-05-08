@@ -211,9 +211,9 @@ void recibir() {
                         // || mem->n_consultas > 0 // Comprobamos si se estan ejecutando consultas
                         || (mem->prioridad_max_enviada == msg_recibir.prioridad && mem->prioridad_max_enviada == CONSULTAS)
                     )
-                && 
+                &&
                     (msg_recibir.ticket_origen != ACK)
-                && (msg_recibir.prioridad >= mem->prioridad_max_enviada )
+                && (msg_recibir.prioridad >= mem->prioridad_max_enviada)
                 && (mem->tenemos_SC == 0 || (mem->prioridad_max_enviada == msg_recibir.prioridad && mem->prioridad_max_enviada == CONSULTAS)) // Aqui comprovamos que no tenemos la SC es decir que no hemos recivido todos los acks pendientes o bien que estamos ejecutando consultas
             )
             {
@@ -224,9 +224,10 @@ void recibir() {
             
 
             // Comprobamos si la prioridad es mayor a la que tienen nuestro procesos en ese caso tendremos que volver a mandar las peticiones unicamente al nodo que nos mandó la prioridad
+
             if (msg_recibir.prioridad > mem->prioridad_max_enviada && mem->quiero == 1){
                 mensaje msg;
-                if (msg_recibir.prioridad == ADMINISTRACION_RESERVAS){
+                if (mem->prioridad_max_enviada == ADMINISTRACION_RESERVAS){
                     mem->ack_pend_administracion_reservas ++; //Aumentamos el numero de acks pendientes de ser atendidos
                 }else{
                     mem->ack_pend_consultas ++;
@@ -236,7 +237,7 @@ void recibir() {
                 msg.prioridad = mem->prioridad_max_enviada; // Lo mandamos con la prioridad maxima actual de nuestro nodo
                 msgsnd(msg_tickets_id, &msg, sizeof(mensaje), 0); //Enviamos ack al nodo origen
                 #ifdef __PRINT_RECIBIR 
-                    printf("Hemos enviado una peticion de ack");
+                    printf("Hemos enviado una peticion de ack puesto que nuestra prioridad es mas pequeña que esta\n");
                 #endif // DEBUG
             }
 
@@ -298,12 +299,17 @@ void recibir() {
                 #endif
                 if (mem->ack_pend_administracion_reservas == 0 && mem->tenemos_SC == 0 && mem->pend_administracion_reservas > 0)
                 {
-                    mem->tenemos_SC = 1;
-                    mem->intentos = N_MAX_INTENTOS;
-                    sem_post(&(mem->sem_paso_administracion_reservas));
-                    #ifdef __PRINT_RECIBIR
-                        printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
-                    #endif
+                    if (mem->pend_pagos_anulaciones == 0)
+                    {
+                        mem->tenemos_SC = 1;
+                        mem->intentos = N_MAX_INTENTOS;
+                        sem_post(&(mem->sem_paso_administracion_reservas));
+                        #ifdef __PRINT_RECIBIR
+                            printf("Dejamos que el proceso de administración o reservas pueda entrar\n");
+                        #endif
+                    }else{
+                        enviar_tickets(ADMINISTRACION_RESERVAS);
+                    }
                 }
                 
                 break;
@@ -320,16 +326,19 @@ void recibir() {
 
                 if (mem->ack_pend_consultas == 0 && mem->tenemos_SC == 0 && mem->pend_consultas > 0)
                 {
-                    mem->tenemos_SC = 1;
-                    mem->intentos = N_MAX_INTENTOS;
-                    sem_post(&(mem->sem_paso_consultas));
-                    #ifdef __PRINT_RECIBIR
-                        printf("Dejamos que el proceso de consultas pueda entrar\n");
-                    #endif
+                    if (mem->pend_pagos_anulaciones == 0 && mem->pend_administracion_reservas == 0)
+                    {
+                        mem->tenemos_SC = 1;
+                        mem->intentos = N_MAX_INTENTOS;
+                        sem_post(&(mem->sem_paso_consultas));
+                        #ifdef __PRINT_RECIBIR
+                            printf("Dejamos que el proceso de consultas pueda entrar\n");
+                        #endif
+                    }else{
+                        enviar_tickets(CONSULTAS);
+                    }
                 }
             
-
-
                 
                 break;
             default:

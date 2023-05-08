@@ -48,15 +48,15 @@ done
 echo "] Hecho!"
 
 
-# # Esperamos  a que terminen los procesos
-# echo -n "Procesando todo: ["
-# for i in {1..60}; do
-#   echo -n "#"
-#   sleep $3
-# done
-# echo "] Hecho!"
+# Esperamos  a que terminen los procesos
+echo -n "Procesando todo: ["
+for i in {1..60}; do
+  echo -n "#"
+  sleep $3
+done
+echo "] Hecho!"
 
-wait $(pgrep -f "administracion|reservas")
+# wait $(pgrep -f "administracion|reservas")
 
 
 
